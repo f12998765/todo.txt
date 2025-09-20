@@ -14,7 +14,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 
 <!-- PWA Manifest -->
-<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22todo.txt%20Web%22%2C%22short_name%22%3A%22todo.txt%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8fafc%22%2C%22theme_color%22%3A%22%233b82f6%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A//www.w3.org/2000/svg%2527%2520viewBox%253D%25270%25200%252048%252048%2527%253E%253Crect%2520width%253D%252748%2527%2520height%253D%252748%2527%2520fill%253D%2527%25233b82f6%2527%2520rx%253D%25278%2527/%253E%253Ctext%2520x%253D%252724%2527%2520y%253D%252732%2527%2520text-anchor%253D%2527middle%2527%2520fill%253D%2527white%2527%2520font-size%253D%252720%2527%2520font-weight%253D%2527bold%2527%253ET%253C/text%253E%253C/svg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image/svg%2Bxml%22%7D%2C%7B%22src%22%3A%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A//www.w3.org/2000/svg%2527%2520viewBox%253D%25270%25200%252048%252048%2527%253E%253Crect%2520width%253D%252748%2527%2520height%253D%252748%2527%2520fill%253D%2527%25233b82f6%2527%2520rx%253D%25278%2527/%253E%253Ctext%2520x%253D%252724%2527%2520y%253D%252732%2527%2520text-anchor%253D%2527middle%2527%2520fill%253D%2527white%2527%2520font-size%253D%252720%2527%2520font-weight%253D%2527bold%2527%253ET%253C/text%253E%253C/svg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/svg%2Bxml%22%7D%5D%7D">
+<link rel="manifest" href="./manifest.json">
 <style>
 :root{
   --bg:#f8fafc;
@@ -1847,50 +1847,20 @@ setInterval(()=> {
 }, 1000);
 
 /* ========= PWA 功能 ========= */
-// Service Worker 注册
-if ('serviceWorker' in navigator) {
+// Service Worker 注册（使用外部文件）
+if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
   window.addEventListener('load', function() {
-    const swCode = `
-      const CACHE_NAME = 'todo-txt-v1';
-      const urlsToCache = [
-        '/',
-        location.pathname
-      ];
-
-      self.addEventListener('install', function(event) {
-        event.waitUntil(
-          caches.open(CACHE_NAME)
-            .then(function(cache) {
-              return cache.addAll(urlsToCache);
-            })
-        );
-      });
-
-      self.addEventListener('fetch', function(event) {
-        event.respondWith(
-          caches.match(event.request)
-            .then(function(response) {
-              if (response) {
-                return response;
-              }
-              return fetch(event.request);
-            }
-          )
-        );
-      });
-    `;
-    
-    const blob = new Blob([swCode], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(blob);
-    
-    navigator.serviceWorker.register(swUrl)
+    navigator.serviceWorker.register('./sw.js')
       .then(function(registration) {
         console.log('ServiceWorker 注册成功:', registration.scope);
+        showToast('应用已支持离线使用！');
       })
       .catch(function(error) {
         console.log('ServiceWorker 注册失败:', error);
       });
   });
+} else if (location.protocol === 'file:') {
+  console.log('PWA功能需要在HTTP/HTTPS协议下运行，当前为file://协议');
 }
 
 // PWA 安装提示
