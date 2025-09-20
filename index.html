@@ -4,6 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>todo.txt · Web</title>
+
+<!-- PWA Meta Tags -->
+<meta name="description" content="功能强大的todo.txt任务管理应用，支持项目分组、智能搜索、字段样式自定义等功能">
+<meta name="theme-color" content="#3b82f6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="todo.txt">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22todo.txt%20Web%22%2C%22short_name%22%3A%22todo.txt%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8fafc%22%2C%22theme_color%22%3A%22%233b82f6%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A//www.w3.org/2000/svg%2527%2520viewBox%253D%25270%25200%252048%252048%2527%253E%253Crect%2520width%253D%252748%2527%2520height%253D%252748%2527%2520fill%253D%2527%25233b82f6%2527%2520rx%253D%25278%2527/%253E%253Ctext%2520x%253D%252724%2527%2520y%253D%252732%2527%2520text-anchor%253D%2527middle%2527%2520fill%253D%2527white%2527%2520font-size%253D%252720%2527%2520font-weight%253D%2527bold%2527%253ET%253C/text%253E%253C/svg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image/svg%2Bxml%22%7D%2C%7B%22src%22%3A%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A//www.w3.org/2000/svg%2527%2520viewBox%253D%25270%25200%252048%252048%2527%253E%253Crect%2520width%253D%252748%2527%2520height%253D%252748%2527%2520fill%253D%2527%25233b82f6%2527%2520rx%253D%25278%2527/%253E%253Ctext%2520x%253D%252724%2527%2520y%253D%252732%2527%2520text-anchor%253D%2527middle%2527%2520fill%253D%2527white%2527%2520font-size%253D%252720%2527%2520font-weight%253D%2527bold%2527%253ET%253C/text%253E%253C/svg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/svg%2Bxml%22%7D%5D%7D">
 <style>
 :root{
   --bg:#f8fafc;
@@ -18,6 +29,23 @@
   --shadow: 0 4px 12px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
   --radius: 12px;
   --sf: -apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+  
+  /* 可自定义的字段样式变量 */
+  --project-color: #2563eb;
+  --project-bg: #eff6ff;
+  --project-border: #bfdbfe;
+  --context-color: #7c3aed;
+  --context-bg: #f3e8ff;
+  --context-border: #c4b5fd;
+  --priority-color: #dc2626;
+  --priority-bg: #fef2f2;
+  --priority-border: #fecaca;
+  --date-color: #059669;
+  --date-bg: #ecfdf5;
+  --date-border: #a7f3d0;
+  --url-color: #ec4899;
+  --url-bg: #fdf2f8;
+  --url-border: #f9a8d4;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -68,37 +96,58 @@ main{max-width:1080px; margin:12px auto 80px; padding:0 16px; display:flex; flex
 .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:12px; box-shadow: var(--shadow)}
 .main-header{display:flex; align-items:center; justify-content:flex-end; padding:0 4px; margin-bottom:12px;}
 .main-controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
-.list{display:flex; flex-direction:column; gap:10px; max-height:68vh; overflow:auto; padding-right:6px}
-.main-list{max-height:75vh; padding-right:8px;}
+.list{display:flex; flex-direction:column; gap:10px; padding-right:6px; padding-bottom:60px;}
+.main-list{padding-right:8px;}
 
 /* tasks */
 .task{
   display:grid; grid-template-columns:24px 1fr auto; gap:10px; align-items:start;
   padding:10px; border:1px solid var(--border); border-radius:10px; background:#fff;
 }
-.task.done{opacity:.82}
+.task.done{opacity:.5; filter: grayscale(0.3);}
 .title{font-weight:600; cursor:text; word-break:break-word; line-height:1.4;}
 .meta{font-size:12px; color:var(--muted); display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; line-height:1.3;}
-.actions{display:flex; gap:6px; align-items:flex-start; flex-shrink:0;}
+.actions{display:none; gap:6px; align-items:flex-start; flex-shrink:0;}
+.task:hover .actions{display:flex;}
 .actions .btn{white-space:nowrap; font-size:12px; padding:4px 8px; height:auto; min-height:28px;}
 .badge{
   display:inline-flex; align-items:center; gap:4px; max-width:100%;
   border:1px solid var(--border); border-radius:999px; padding:2px 8px; background:#fafafa; color:#555; font-size:12px;
 }
-.badge.pri{color:#dc2626; background:#fef2f2; border-color:#fecaca;}
-.badge.due{color:#d97706; background:#fffbeb; border-color:#fed7aa;}
+.badge.pri{color:var(--priority-color); background:var(--priority-bg); border-color:var(--priority-border);}
+.badge.due{color:var(--date-color); background:var(--date-bg); border-color:var(--date-border);}
 .badge.over{color:#ef4444; background:#fef2f2; border-color:#fecaca;}
-.badge.start{color:#059669; background:#ecfdf5; border-color:#a7f3d0;}
-.badge.proj{color:#2563eb; background:#eff6ff; border-color:#bfdbfe;}
-.badge.ctx{color:#7c3aed; background:#f3e8ff; border-color:#c4b5fd;}
+.badge.start{color:var(--date-color); background:var(--date-bg); border-color:var(--date-border);}
+.badge.proj{color:var(--project-color); background:var(--project-bg); border-color:var(--project-border);}
+.badge.ctx{color:var(--context-color); background:var(--context-bg); border-color:var(--context-border);}
 .badge.rec{color:#0891b2; background:#ecfeff; border-color:#a5f3fc;}
 .badge.time{color:#16a34a; background:#f0fdf4; border-color:#bbf7d0;}
 .badge.time.expired{color:#dc2626; background:#fef2f2; border-color:#fecaca; font-weight:600;}
 .badge.link{cursor:pointer; transition: all 0.2s ease; opacity: 0.8;}
 .badge.link:hover{opacity: 1; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
-.settings-btn{width:36px; padding:0; display:flex; align-items:center; justify-content:center; font-size:16px;}
-.settings-btn:hover{transform: rotate(90deg); transition: transform 0.3s ease;}
-.actions{display:flex; gap:8px; align-items:center}
+.badge.url{
+  color:var(--url-color); background:var(--url-bg); border-color:var(--url-border);
+  cursor:pointer; transition: all 0.2s ease;
+}
+.badge.url:hover{
+  opacity: 0.8; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(236,72,153,0.2);
+}
+.settings-btn{
+  width:32px; height:32px; padding:0; 
+  display:flex; align-items:center; justify-content:center; 
+  font-size:14px; border-radius:6px;
+  background:rgba(255,255,255,0.1); 
+  border:1px solid rgba(255,255,255,0.2);
+  transition: all 0.2s ease;
+}
+.settings-btn:hover{
+  background:rgba(255,255,255,0.2); 
+  border-color:rgba(255,255,255,0.3);
+  transform: scale(1.05);
+}
+.settings-btn:active{
+  transform: scale(0.95);
+}
 .rawbox{
   grid-column: 1 / -1;
   display:none; gap:8px; flex-wrap:wrap; margin-top:8px;
@@ -119,6 +168,170 @@ main{max-width:1080px; margin:12px auto 80px; padding:0 16px; display:flex; flex
 .section-title{font-weight:600; font-size:13px; color:#4b5563; margin:6px 0}
 .grid{display:grid; grid-template-columns: 1fr 1fr; gap:8px}
 .row{display:flex; gap:8px; align-items:center; margin:6px 0}
+
+/* 分组样式 */
+.group-container{margin-bottom:20px;}
+.group-header{
+  background:rgba(59,130,246,0.1); 
+  border:1px solid rgba(59,130,246,0.2);
+  padding:8px 12px; margin-bottom:8px; 
+  border-radius:8px; font-weight:600; 
+  color:#1e40af; font-size:13px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.group-count{
+  background:rgba(59,130,246,0.2); 
+  color:#1e40af; padding:2px 6px; 
+  border-radius:10px; font-size:11px; font-weight:normal;
+}
+.group-tasks{margin-left:0;}
+
+/* 字段样式配置模态框 */
+.field-style-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  z-index: 1000;
+  width: 500px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.field-style-modal.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.field-style-modal-header {
+  padding: 20px 20px 0;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+  cursor: move;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-style-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.field-style-modal-body {
+  padding: 0 20px 20px;
+}
+
+.field-group {
+  margin-bottom: 25px;
+  padding: 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.field-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-preview {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.style-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.style-control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.style-control label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.color-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.color-picker {
+  width: 35px;
+  height: 30px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-text-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.field-style-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.field-style-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.field-style-btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.field-style-btn-primary:hover {
+  background: #2563eb;
+}
+
+.field-style-btn-secondary {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.field-style-btn-secondary:hover {
+  background: #e2e8f0;
+}
 
 /* confirm bar & toast */
 .confirm-bar{display:flex; gap:8px; align-items:center; background:#fffbeb; border:1px solid #fed7aa; color:#92400e; padding:8px 10px; border-radius:10px; margin-top:8px}
@@ -203,6 +416,8 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
   .main-controls .input{min-width:140px; flex:1; max-width:220px;}
   .main-controls .select{min-width:90px;}
   .main-list{max-height:70vh;}
+  .field-style-modal{width:95vw;}
+  .style-controls{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -213,8 +428,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
     <div class="row">
       <h1 id="appTitle" style="cursor: pointer;" title="点击刷新">todo.txt</h1>
       <div class="grow"></div>
-
-            <button id="settingsBtn" class="btn settings-btn" title="设置">⚙️</button>
+      <button id="settingsBtn" class="btn settings-btn" title="设置">⚙️</button>
     </div>
   </div>
 </header>
@@ -237,13 +451,15 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
         <option value="all">全部</option>
         <option value="open">未完成</option>
         <option value="done">已完成</option>
+        <option value="ongoing">正在进行</option>
+        <option value="pending">未开始</option>
         <option value="expired">已过期</option>
       </select>
     </div>
   </div>
   <div id="list" class="list main-list"></div>
 
-    <div class="drawer" id="drawer">
+  <div class="drawer" id="drawer">
     <div class="section">
       <div class="row">
         <strong>设置</strong>
@@ -255,11 +471,25 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
     <div class="section">
       <div class="section-title">视图与排序</div>
       <div class="row">
+        <label style="font-size:13px; color:#666;">分组方式:</label>
+        <select id="groupBy" class="select" style="flex: 1;">
+          <option value="none">不分组</option>
+          <option value="project">按项目分组</option>
+          <option value="context">按上下文分组</option>
+          <option value="priority">按优先级分组</option>
+          <option value="status">按状态分组</option>
+        </select>
+      </div>
+      <div class="row">
+        <label style="font-size:13px; color:#666;">排序方式:</label>
         <select id="sort" class="select" style="flex: 1;">
           <option value="priority,due,start,text">优先级→截止→开始→文本</option>
           <option value="due,start,priority,text">截止→开始→优先级→文本</option>
+          <option value="countdown,priority,text">倒计时→优先级→文本</option>
+          <option value="priority,countdown,text">优先级→倒计时→文本</option>
           <option value="start,due,priority,text">开始→截止→优先级→文本</option>
-          <option value="text">文本</option>
+          <option value="created,priority,text">创建时间→优先级→文本</option>
+          <option value="text">按文本排序</option>
         </select>
       </div>
     </div>
@@ -276,6 +506,13 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
       <div class="section-title">文本编辑</div>
       <div class="row">
         <button id="openEditorBtn" class="btn primary" style="flex: 1;">打开 todo.txt 编辑器</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">字段样式</div>
+      <div class="row">
+        <button id="openFieldStyleBtn" class="btn primary" style="flex: 1;">自定义字段样式</button>
       </div>
     </div>
 
@@ -316,11 +553,199 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
   </div>
 </div>
 
+<!-- 字段样式配置浮动窗口 -->
+<div class="field-style-modal" id="fieldStyleModal">
+  <div class="field-style-modal-header" id="fieldStyleModalDragHandle">
+    <span class="field-style-modal-title">自定义字段样式</span>
+    <button id="closeFieldStyle" class="btn">关闭</button>
+  </div>
+  <div class="field-style-modal-body">
+    
+    <!-- 项目字段样式 -->
+    <div class="field-group">
+      <div class="field-group-title">
+        项目标签 (+project)
+        <span class="field-preview" id="projectPreview">+示例项目</span>
+      </div>
+      <div class="style-controls">
+        <div class="style-control">
+          <label>文字颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="projectColorPicker" class="color-picker" value="#2563eb">
+            <input type="text" id="projectColorInput" class="color-text-input" placeholder="#2563eb">
+          </div>
+        </div>
+        <div class="style-control">
+          <label>背景颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="projectBgPicker" class="color-picker" value="#eff6ff">
+            <input type="text" id="projectBgInput" class="color-text-input" placeholder="#eff6ff">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 上下文字段样式 -->
+    <div class="field-group">
+      <div class="field-group-title">
+        上下文标签 (@context)
+        <span class="field-preview" id="contextPreview">@示例上下文</span>
+      </div>
+      <div class="style-controls">
+        <div class="style-control">
+          <label>文字颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="contextColorPicker" class="color-picker" value="#7c3aed">
+            <input type="text" id="contextColorInput" class="color-text-input" placeholder="#7c3aed">
+          </div>
+        </div>
+        <div class="style-control">
+          <label>背景颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="contextBgPicker" class="color-picker" value="#f3e8ff">
+            <input type="text" id="contextBgInput" class="color-text-input" placeholder="#f3e8ff">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 优先级字段样式 -->
+    <div class="field-group">
+      <div class="field-group-title">
+        优先级标签 ((A), (B), (C))
+        <span class="field-preview" id="priorityPreview">P:A</span>
+      </div>
+      <div class="style-controls">
+        <div class="style-control">
+          <label>文字颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="priorityColorPicker" class="color-picker" value="#dc2626">
+            <input type="text" id="priorityColorInput" class="color-text-input" placeholder="#dc2626">
+          </div>
+        </div>
+        <div class="style-control">
+          <label>背景颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="priorityBgPicker" class="color-picker" value="#fef2f2">
+            <input type="text" id="priorityBgInput" class="color-text-input" placeholder="#fef2f2">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 日期字段样式 -->
+    <div class="field-group">
+      <div class="field-group-title">
+        日期标签 (due, start, end)
+        <span class="field-preview" id="datePreview">due:2025-12-31</span>
+      </div>
+      <div class="style-controls">
+        <div class="style-control">
+          <label>文字颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="dateColorPicker" class="color-picker" value="#059669">
+            <input type="text" id="dateColorInput" class="color-text-input" placeholder="#059669">
+          </div>
+        </div>
+        <div class="style-control">
+          <label>背景颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="dateBgPicker" class="color-picker" value="#ecfdf5">
+            <input type="text" id="dateBgInput" class="color-text-input" placeholder="#ecfdf5">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- URL字段样式 -->
+    <div class="field-group">
+      <div class="field-group-title">
+        URL链接
+        <span class="field-preview" id="urlPreview">url:https://example.com</span>
+      </div>
+      <div class="style-controls">
+        <div class="style-control">
+          <label>文字颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="urlColorPicker" class="color-picker" value="#ec4899">
+            <input type="text" id="urlColorInput" class="color-text-input" placeholder="#ec4899">
+          </div>
+        </div>
+        <div class="style-control">
+          <label>背景颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="urlBgPicker" class="color-picker" value="#fdf2f8">
+            <input type="text" id="urlBgInput" class="color-text-input" placeholder="#fdf2f8">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-style-actions">
+      <button id="resetFieldStyles" class="field-style-btn field-style-btn-secondary">重置默认</button>
+      <button id="applyFieldStyles" class="field-style-btn field-style-btn-primary">应用样式</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ========= 存储 ========= */
 const STORE_KEY = 'todotxt.web.final.v1';
+const FIELD_STYLES_KEY = 'todotxt.web.field.styles.v1';
+
 function save(lines) { localStorage.setItem(STORE_KEY, JSON.stringify(lines)); }
 function load() { try { const s=localStorage.getItem(STORE_KEY); return s? JSON.parse(s): []; } catch { return []; } }
+
+/* ========= 字段样式系统 ========= */
+function saveFieldStyles(styles) { 
+  localStorage.setItem(FIELD_STYLES_KEY, JSON.stringify(styles)); 
+}
+
+function loadFieldStyles() { 
+  try { 
+    const s = localStorage.getItem(FIELD_STYLES_KEY); 
+    return s ? JSON.parse(s) : getDefaultFieldStyles(); 
+  } catch { 
+    return getDefaultFieldStyles(); 
+  } 
+}
+
+function getDefaultFieldStyles() {
+  return {
+    project: { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    context: { color: '#7c3aed', bg: '#f3e8ff', border: '#c4b5fd' },
+    priority: { color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+    date: { color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+    url: { color: '#ec4899', bg: '#fdf2f8', border: '#f9a8d4' }
+  };
+}
+
+function applyFieldStyles(styles) {
+  const root = document.documentElement;
+  root.style.setProperty('--project-color', styles.project.color);
+  root.style.setProperty('--project-bg', styles.project.bg);
+  root.style.setProperty('--project-border', styles.project.border);
+  
+  root.style.setProperty('--context-color', styles.context.color);
+  root.style.setProperty('--context-bg', styles.context.bg);
+  root.style.setProperty('--context-border', styles.context.border);
+  
+  root.style.setProperty('--priority-color', styles.priority.color);
+  root.style.setProperty('--priority-bg', styles.priority.bg);
+  root.style.setProperty('--priority-border', styles.priority.border);
+  
+  root.style.setProperty('--date-color', styles.date.color);
+  root.style.setProperty('--date-bg', styles.date.bg);
+  root.style.setProperty('--date-border', styles.date.border);
+  
+  root.style.setProperty('--url-color', styles.url.color);
+  root.style.setProperty('--url-bg', styles.url.bg);
+  root.style.setProperty('--url-border', styles.url.border);
+}
+
+// 初始化字段样式
+let currentFieldStyles = loadFieldStyles();
+applyFieldStyles(currentFieldStyles);
 
 /* ========= 工具 ========= */
 const pad = n => String(n).padStart(2,'0');
@@ -488,6 +913,27 @@ function sortTasks(arr, spec="priority,due,start,text") {
         if (sa && sb && sa.getTime() !== sb.getTime()) return sa - sb;
         if (sa && !sb) return -1;
         if (!sa && sb) return 1;
+      } else if (k === 'countdown') {
+        // 按倒计时排序：越紧急的越靠前
+        const now = new Date();
+        const getUrgency = (t) => {
+          if (t.done) return 999999; // 已完成的排在最后
+          const due = parseDateMaybe(t.kv['due']);
+          const end = parseDateMaybe(t.kv['end']);
+          const start = parseDateMaybe(t.kv['start']);
+          
+          if (due) return due.getTime() - now.getTime();
+          if (end) return end.getTime() - now.getTime();
+          if (start && start > now) return start.getTime() - now.getTime();
+          return 999999; // 无时间限制的排在最后
+        };
+        const ua = getUrgency(a), ub = getUrgency(b);
+        if (ua !== ub) return ua - ub;
+      } else if (k === 'created') {
+        const ca = parseDateMaybe(a.createdDate), cb = parseDateMaybe(b.createdDate);
+        if (ca && cb && ca.getTime() !== cb.getTime()) return cb - ca; // 新创建的在前
+        if (ca && !cb) return -1;
+        if (!ca && cb) return 1;
       } else if (k === 'text') {
         const cmp = (a.text||'').localeCompare(b.text||'');
         if (cmp !== 0) return cmp;
@@ -495,6 +941,81 @@ function sortTasks(arr, spec="priority,due,start,text") {
     }
     return 0;
   });
+}
+
+// 分组函数
+function groupTasks(tasks, groupBy) {
+  if (groupBy === 'none') return [{ name: '全部任务', tasks }];
+  
+  const groups = {};
+  
+  for (const task of tasks) {
+    let groupKey = '未分类';
+    
+    switch (groupBy) {
+      case 'project':
+        if (task.projects.length > 0) {
+          groupKey = task.projects[0]; // 使用第一个项目
+        }
+        break;
+      case 'context':
+        if (task.contexts.length > 0) {
+          groupKey = task.contexts[0]; // 使用第一个上下文
+        }
+        break;
+      case 'priority':
+        if (task.priority) {
+          groupKey = `优先级 ${task.priority}`;
+        } else {
+          groupKey = '无优先级';
+        }
+        break;
+      case 'status':
+        if (task.done) {
+          groupKey = '已完成';
+        } else {
+          const now = new Date();
+          const today = new Date(now.toDateString());
+          const due = parseDateMaybe(task.kv['due']);
+          const end = parseDateMaybe(task.kv['end']);
+          
+          if ((due && due < today) || (end && end < now)) {
+            groupKey = '已过期';
+          } else if (due || end) {
+            groupKey = '有截止时间';
+          } else {
+            groupKey = '无截止时间';
+          }
+        }
+        break;
+    }
+    
+    if (!groups[groupKey]) {
+      groups[groupKey] = [];
+    }
+    groups[groupKey].push(task);
+  }
+  
+  // 转换为数组并排序
+  const result = Object.entries(groups).map(([name, tasks]) => ({ name, tasks }));
+  
+  // 对分组进行排序
+  result.sort((a, b) => {
+    if (groupBy === 'priority') {
+      const getPriorityOrder = (name) => {
+        if (name === '无优先级') return 999;
+        const match = name.match(/优先级 ([A-Z])/);
+        return match ? match[1].charCodeAt(0) : 999;
+      };
+      return getPriorityOrder(a.name) - getPriorityOrder(b.name);
+    } else if (groupBy === 'status') {
+      const statusOrder = { '已过期': 0, '有截止时间': 1, '无截止时间': 2, '已完成': 3 };
+      return (statusOrder[a.name] || 999) - (statusOrder[b.name] || 999);
+    }
+    return a.name.localeCompare(b.name);
+  });
+  
+  return result;
 }
 
 /* ========= 倒计时 ========= */
@@ -552,6 +1073,7 @@ function render() {
   const list = document.getElementById('list');
   const status = document.getElementById('status').value;
   const sortSpec = document.getElementById('sort') ? document.getElementById('sort').value : 'priority,due,start,text';
+  const groupBy = document.getElementById('groupBy') ? document.getElementById('groupBy').value : 'none';
   const searchVal = document.getElementById('search').value.trim();
 
   // 排序并持久化顺序到文本
@@ -593,13 +1115,46 @@ function render() {
     });
   }
 
-
-
   // 应用状态过滤
   if (status === 'open') {
     view = view.filter(t => !t.done);
   } else if (status === 'done') {
     view = view.filter(t => t.done);
+  } else if (status === 'ongoing') {
+    // 正在进行：已开始但未结束，或无开始时间但有截止时间且未过期，或无任何时间限制的未完成任务
+    const now = new Date();
+    const today = new Date(now.toDateString());
+    view = view.filter(t => {
+      if (t.done) return false;
+      
+      const start = parseDateMaybe(t.kv['start']);
+      const end = parseDateMaybe(t.kv['end']);
+      const due = parseDateMaybe(t.kv['due']);
+      
+      // 已开始但未结束
+      if (start && now >= start) {
+        if (!end || now < end) return true;
+      }
+      
+      // 无开始时间但有截止时间且未过期
+      if (!start && (due || end)) {
+        const deadline = due || end;
+        return deadline >= (due ? today : now);
+      }
+      
+      // 无任何时间限制的未完成任务
+      if (!start && !end && !due) return true;
+      
+      return false;
+    });
+  } else if (status === 'pending') {
+    // 未开始：有开始时间且还未到开始时间
+    const now = new Date();
+    view = view.filter(t => {
+      if (t.done) return false;
+      const start = parseDateMaybe(t.kv['start']);
+      return start && now < start;
+    });
   } else if (status === 'expired') {
     const now = new Date();
     const today = new Date(now.toDateString());
@@ -611,13 +1166,43 @@ function render() {
     });
   }
 
-
+  // 分组处理
+  const groups = groupTasks(view, groupBy);
 
   // 渲染
   list.innerHTML = '';
-  for (const t of tasks) {
-    if (!view.includes(t)) continue;
+  
+  for (const group of groups) {
+    // 如果有分组，添加分组标题
+    if (groupBy !== 'none') {
+      const groupContainer = document.createElement('div');
+      groupContainer.className = 'group-container';
+      
+      const groupHeader = document.createElement('div');
+      groupHeader.className = 'group-header';
+      groupHeader.innerHTML = `
+        <span>${group.name}</span>
+        <span class="group-count">${group.tasks.length}</span>
+      `;
+      
+      const groupTasks = document.createElement('div');
+      groupTasks.className = 'group-tasks';
+      
+      groupContainer.appendChild(groupHeader);
+      groupContainer.appendChild(groupTasks);
+      list.appendChild(groupContainer);
+      
+      // 渲染该分组的任务
+      renderTasks(group.tasks, groupTasks);
+    } else {
+      // 无分组，直接渲染所有任务
+      renderTasks(group.tasks, list);
+    }
+  }
+}
 
+function renderTasks(tasksToRender, container) {
+  for (const t of tasksToRender) {
     const row = document.createElement('div');
     row.className = 'task'+(t.done?' done':'');
     const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=t.done;
@@ -679,9 +1264,23 @@ function render() {
     if (count) meta.append(badge(`count:${count}`));
     if (until) meta.append(badge(`until:${until}`));
 
-    // 其他 kv
+    // 其他 kv，检查URL
     const known = new Set(['due','t','start','end','rec','count','until','doneat','id']);
-    for (const k of Object.keys(t.kv).sort()) if (!known.has(k)) meta.append(badge(`${k}:${t.kv[k]}`));
+    for (const k of Object.keys(t.kv).sort()) {
+      if (!known.has(k)) {
+        const value = t.kv[k];
+        // 检查是否是URL
+        if (value.startsWith('http://') || value.startsWith('https://')) {
+          const urlBadge = badge(`${k}:${value}`, 'url');
+          urlBadge.addEventListener('click', () => {
+            window.open(value, '_blank');
+          });
+          meta.append(urlBadge);
+        } else {
+          meta.append(badge(`${k}:${value}`));
+        }
+      }
+    }
 
     // 时间信息：未完成且具备 start/end/due 时显示倒计时；完成则显示完成时间（含秒）
     const hasTiming = !!(start || end || due);
@@ -747,7 +1346,7 @@ function render() {
     actions.append(btnRaw, btnDel);
 
     row.append(cb, body, actions, rawBox);
-    list.append(row);
+    container.append(row);
   }
 }
 
@@ -768,6 +1367,271 @@ function exportTxt() {
   URL.revokeObjectURL(a.href);
   showToast('已导出');
 }
+
+/* ========= 字段样式配置功能 ========= */
+const fieldStyleModal = document.getElementById('fieldStyleModal');
+
+// 更新预览
+function updateFieldStylePreviews() {
+  const projectPreview = document.getElementById('projectPreview');
+  const contextPreview = document.getElementById('contextPreview');
+  const priorityPreview = document.getElementById('priorityPreview');
+  const datePreview = document.getElementById('datePreview');
+  const urlPreview = document.getElementById('urlPreview');
+  
+  projectPreview.style.color = currentFieldStyles.project.color;
+  projectPreview.style.backgroundColor = currentFieldStyles.project.bg;
+  projectPreview.style.borderColor = currentFieldStyles.project.border;
+  
+  contextPreview.style.color = currentFieldStyles.context.color;
+  contextPreview.style.backgroundColor = currentFieldStyles.context.bg;
+  contextPreview.style.borderColor = currentFieldStyles.context.border;
+  
+  priorityPreview.style.color = currentFieldStyles.priority.color;
+  priorityPreview.style.backgroundColor = currentFieldStyles.priority.bg;
+  priorityPreview.style.borderColor = currentFieldStyles.priority.border;
+  
+  datePreview.style.color = currentFieldStyles.date.color;
+  datePreview.style.backgroundColor = currentFieldStyles.date.bg;
+  datePreview.style.borderColor = currentFieldStyles.date.border;
+  
+  urlPreview.style.color = currentFieldStyles.url.color;
+  urlPreview.style.backgroundColor = currentFieldStyles.url.bg;
+  urlPreview.style.borderColor = currentFieldStyles.url.border;
+}
+
+// 更新输入框
+function updateFieldStyleInputs() {
+  document.getElementById('projectColorPicker').value = currentFieldStyles.project.color;
+  document.getElementById('projectColorInput').value = currentFieldStyles.project.color;
+  document.getElementById('projectBgPicker').value = currentFieldStyles.project.bg;
+  document.getElementById('projectBgInput').value = currentFieldStyles.project.bg;
+  
+  document.getElementById('contextColorPicker').value = currentFieldStyles.context.color;
+  document.getElementById('contextColorInput').value = currentFieldStyles.context.color;
+  document.getElementById('contextBgPicker').value = currentFieldStyles.context.bg;
+  document.getElementById('contextBgInput').value = currentFieldStyles.context.bg;
+  
+  document.getElementById('priorityColorPicker').value = currentFieldStyles.priority.color;
+  document.getElementById('priorityColorInput').value = currentFieldStyles.priority.color;
+  document.getElementById('priorityBgPicker').value = currentFieldStyles.priority.bg;
+  document.getElementById('priorityBgInput').value = currentFieldStyles.priority.bg;
+  
+  document.getElementById('dateColorPicker').value = currentFieldStyles.date.color;
+  document.getElementById('dateColorInput').value = currentFieldStyles.date.color;
+  document.getElementById('dateBgPicker').value = currentFieldStyles.date.bg;
+  document.getElementById('dateBgInput').value = currentFieldStyles.date.bg;
+  
+  document.getElementById('urlColorPicker').value = currentFieldStyles.url.color;
+  document.getElementById('urlColorInput').value = currentFieldStyles.url.color;
+  document.getElementById('urlBgPicker').value = currentFieldStyles.url.bg;
+  document.getElementById('urlBgInput').value = currentFieldStyles.url.bg;
+}
+
+// 实时预览
+function previewFieldStyles(styles) {
+  applyFieldStyles(styles);
+  updateFieldStylePreviews();
+  // 立即更新预览标签的样式
+  const projectPreview = document.getElementById('projectPreview');
+  const contextPreview = document.getElementById('contextPreview');
+  const priorityPreview = document.getElementById('priorityPreview');
+  const datePreview = document.getElementById('datePreview');
+  const urlPreview = document.getElementById('urlPreview');
+  
+  projectPreview.style.color = styles.project.color;
+  projectPreview.style.backgroundColor = styles.project.bg;
+  projectPreview.style.borderColor = styles.project.border;
+  
+  contextPreview.style.color = styles.context.color;
+  contextPreview.style.backgroundColor = styles.context.bg;
+  contextPreview.style.borderColor = styles.context.border;
+  
+  priorityPreview.style.color = styles.priority.color;
+  priorityPreview.style.backgroundColor = styles.priority.bg;
+  priorityPreview.style.borderColor = styles.priority.border;
+  
+  datePreview.style.color = styles.date.color;
+  datePreview.style.backgroundColor = styles.date.bg;
+  datePreview.style.borderColor = styles.date.border;
+  
+  urlPreview.style.color = styles.url.color;
+  urlPreview.style.backgroundColor = styles.url.bg;
+  urlPreview.style.borderColor = styles.url.border;
+}
+
+// 打开字段样式配置
+document.getElementById('openFieldStyleBtn').addEventListener('click', () => {
+  updateFieldStyleInputs();
+  updateFieldStylePreviews();
+  fieldStyleModal.classList.add('open');
+});
+
+// 关闭字段样式配置
+document.getElementById('closeFieldStyle').addEventListener('click', () => {
+  fieldStyleModal.classList.remove('open');
+  // 恢复到保存的样式
+  currentFieldStyles = loadFieldStyles();
+  applyFieldStyles(currentFieldStyles);
+  updateFieldStylePreviews();
+});
+
+// 设置颜色输入事件监听器
+function setupColorInputs(fieldType) {
+  const colorPicker = document.getElementById(`${fieldType}ColorPicker`);
+  const colorInput = document.getElementById(`${fieldType}ColorInput`);
+  const bgPicker = document.getElementById(`${fieldType}BgPicker`);
+  const bgInput = document.getElementById(`${fieldType}BgInput`);
+  
+  colorPicker.addEventListener('input', (e) => {
+    const newStyles = JSON.parse(JSON.stringify(currentFieldStyles));
+    newStyles[fieldType].color = e.target.value;
+    colorInput.value = e.target.value;
+    // 立即更新当前样式以便预览
+    currentFieldStyles = newStyles;
+    previewFieldStyles(newStyles);
+  });
+  
+  colorInput.addEventListener('input', (e) => {
+    const color = e.target.value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+      const newStyles = JSON.parse(JSON.stringify(currentFieldStyles));
+      newStyles[fieldType].color = color;
+      colorPicker.value = color;
+      // 立即更新当前样式以便预览
+      currentFieldStyles = newStyles;
+      previewFieldStyles(newStyles);
+    }
+  });
+  
+  bgPicker.addEventListener('input', (e) => {
+    const newStyles = JSON.parse(JSON.stringify(currentFieldStyles));
+    newStyles[fieldType].bg = e.target.value;
+    // 自动计算边框颜色（稍微深一点）
+    const rgb = hexToRgb(e.target.value);
+    if (rgb) {
+      const darkerRgb = {
+        r: Math.max(0, rgb.r - 30),
+        g: Math.max(0, rgb.g - 30),
+        b: Math.max(0, rgb.b - 30)
+      };
+      newStyles[fieldType].border = rgbToHex(darkerRgb.r, darkerRgb.g, darkerRgb.b);
+    }
+    bgInput.value = e.target.value;
+    // 立即更新当前样式以便预览
+    currentFieldStyles = newStyles;
+    previewFieldStyles(newStyles);
+  });
+  
+  bgInput.addEventListener('input', (e) => {
+    const color = e.target.value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+      const newStyles = JSON.parse(JSON.stringify(currentFieldStyles));
+      newStyles[fieldType].bg = color;
+      // 自动计算边框颜色
+      const rgb = hexToRgb(color);
+      if (rgb) {
+        const darkerRgb = {
+          r: Math.max(0, rgb.r - 30),
+          g: Math.max(0, rgb.g - 30),
+          b: Math.max(0, rgb.b - 30)
+        };
+        newStyles[fieldType].border = rgbToHex(darkerRgb.r, darkerRgb.g, darkerRgb.b);
+      }
+      bgPicker.value = color;
+      // 立即更新当前样式以便预览
+      currentFieldStyles = newStyles;
+      previewFieldStyles(newStyles);
+    }
+  });
+}
+
+// 颜色转换工具函数
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+function rgbToHex(r, g, b) {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+// 初始化所有字段的颜色输入
+['project', 'context', 'priority', 'date', 'url'].forEach(setupColorInputs);
+
+// 应用字段样式
+document.getElementById('applyFieldStyles').addEventListener('click', () => {
+  const newStyles = {
+    project: {
+      color: document.getElementById('projectColorInput').value || document.getElementById('projectColorPicker').value,
+      bg: document.getElementById('projectBgInput').value || document.getElementById('projectBgPicker').value,
+      border: currentFieldStyles.project.border
+    },
+    context: {
+      color: document.getElementById('contextColorInput').value || document.getElementById('contextColorPicker').value,
+      bg: document.getElementById('contextBgInput').value || document.getElementById('contextBgPicker').value,
+      border: currentFieldStyles.context.border
+    },
+    priority: {
+      color: document.getElementById('priorityColorInput').value || document.getElementById('priorityColorPicker').value,
+      bg: document.getElementById('priorityBgInput').value || document.getElementById('priorityBgPicker').value,
+      border: currentFieldStyles.priority.border
+    },
+    date: {
+      color: document.getElementById('dateColorInput').value || document.getElementById('dateColorPicker').value,
+      bg: document.getElementById('dateBgInput').value || document.getElementById('dateBgPicker').value,
+      border: currentFieldStyles.date.border
+    },
+    url: {
+      color: document.getElementById('urlColorInput').value || document.getElementById('urlColorPicker').value,
+      bg: document.getElementById('urlBgInput').value || document.getElementById('urlBgPicker').value,
+      border: currentFieldStyles.url.border
+    }
+  };
+  
+  currentFieldStyles = newStyles;
+  saveFieldStyles(currentFieldStyles);
+  applyFieldStyles(currentFieldStyles);
+  fieldStyleModal.classList.remove('open');
+  showToast('字段样式已应用');
+});
+
+// 重置字段样式
+document.getElementById('resetFieldStyles').addEventListener('click', () => {
+  const defaultStyles = getDefaultFieldStyles();
+  currentFieldStyles = defaultStyles;
+  saveFieldStyles(currentFieldStyles);
+  applyFieldStyles(currentFieldStyles);
+  updateFieldStyleInputs();
+  updateFieldStylePreviews();
+  showToast('字段样式已重置');
+});
+
+// 字段样式配置窗口拖动功能
+const fieldStyleModalDragHandle = document.getElementById('fieldStyleModalDragHandle');
+(function makeFieldStyleModalDraggable(){
+  let isDown=false, startX=0, startY=0, startLeft=0, startTop=0;
+  fieldStyleModalDragHandle.addEventListener('mousedown', (e)=>{
+    isDown=true;
+    const rect = fieldStyleModal.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeft = rect.left; startTop = rect.top;
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!isDown) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    fieldStyleModal.style.left = (startLeft + dx) + 'px';
+    fieldStyleModal.style.top  = (startTop  + dy) + 'px';
+    fieldStyleModal.style.transform = 'translate(0,0)';
+  });
+  window.addEventListener('mouseup', ()=> isDown=false);
+})();
 
 /* ========= 事件 ========= */
 document.getElementById('applyTxt').addEventListener('click', ()=> {
@@ -812,6 +1676,7 @@ const drawer = document.getElementById('drawer');
 document.getElementById('settingsBtn').addEventListener('click', ()=> drawer.classList.add('open'));
 document.getElementById('closeDrawer').addEventListener('click', ()=> drawer.classList.remove('open'));
 document.getElementById('sort').addEventListener('input', render);
+document.getElementById('groupBy').addEventListener('input', render);
 
 // 清理已完成（修复：始终基于当前 tasks 过滤 done=true）
 document.getElementById('clearDoneBtn').addEventListener('click', ()=> {
@@ -980,6 +1845,87 @@ setInterval(()=> {
     }
   }
 }, 1000);
+
+/* ========= PWA 功能 ========= */
+// Service Worker 注册
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    const swCode = `
+      const CACHE_NAME = 'todo-txt-v1';
+      const urlsToCache = [
+        '/',
+        location.pathname
+      ];
+
+      self.addEventListener('install', function(event) {
+        event.waitUntil(
+          caches.open(CACHE_NAME)
+            .then(function(cache) {
+              return cache.addAll(urlsToCache);
+            })
+        );
+      });
+
+      self.addEventListener('fetch', function(event) {
+        event.respondWith(
+          caches.match(event.request)
+            .then(function(response) {
+              if (response) {
+                return response;
+              }
+              return fetch(event.request);
+            }
+          )
+        );
+      });
+    `;
+    
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    
+    navigator.serviceWorker.register(swUrl)
+      .then(function(registration) {
+        console.log('ServiceWorker 注册成功:', registration.scope);
+      })
+      .catch(function(error) {
+        console.log('ServiceWorker 注册失败:', error);
+      });
+  });
+}
+
+// PWA 安装提示
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // 显示安装提示
+  const installBanner = document.createElement('div');
+  installBanner.innerHTML = `
+    <div style="position: fixed; top: 0; left: 0; right: 0; background: #3b82f6; color: white; padding: 12px; text-align: center; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <span style="margin-right: 10px;">📱 安装 todo.txt 应用到桌面？</span>
+      <button onclick="installPWA()" style="margin-right: 8px; background: white; color: #3b82f6; border: none; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">安装</button>
+      <button onclick="this.parentElement.parentElement.remove()" style="background: transparent; color: white; border: 1px solid rgba(255,255,255,0.5); padding: 6px 16px; border-radius: 6px; cursor: pointer;">取消</button>
+    </div>
+  `;
+  document.body.appendChild(installBanner);
+});
+
+function installPWA() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('用户接受了安装提示');
+        showToast('应用安装成功！');
+      }
+      deferredPrompt = null;
+    });
+    // 移除安装横幅
+    const banner = document.querySelector('[style*="position: fixed"]');
+    if (banner) banner.parentElement.remove();
+  }
+}
 
 /* ========= 初始渲染 ========= */
 if (tasks.length===0) {
