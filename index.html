@@ -1863,40 +1863,6 @@ if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.p
   console.log('PWA功能需要在HTTP/HTTPS协议下运行，当前为file://协议');
 }
 
-// PWA 安装提示
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  
-  // 显示安装提示
-  const installBanner = document.createElement('div');
-  installBanner.innerHTML = `
-    <div style="position: fixed; top: 0; left: 0; right: 0; background: #3b82f6; color: white; padding: 12px; text-align: center; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-      <span style="margin-right: 10px;">📱 安装 todo.txt 应用到桌面？</span>
-      <button onclick="installPWA()" style="margin-right: 8px; background: white; color: #3b82f6; border: none; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">安装</button>
-      <button onclick="this.parentElement.parentElement.remove()" style="background: transparent; color: white; border: 1px solid rgba(255,255,255,0.5); padding: 6px 16px; border-radius: 6px; cursor: pointer;">取消</button>
-    </div>
-  `;
-  document.body.appendChild(installBanner);
-});
-
-function installPWA() {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('用户接受了安装提示');
-        showToast('应用安装成功！');
-      }
-      deferredPrompt = null;
-    });
-    // 移除安装横幅
-    const banner = document.querySelector('[style*="position: fixed"]');
-    if (banner) banner.parentElement.remove();
-  }
-}
-
 /* ========= 初始渲染 ========= */
 if (tasks.length===0) {
   const seed = [
