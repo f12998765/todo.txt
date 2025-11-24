@@ -2,7 +2,8 @@ const CACHE_NAME = 'todo-txt-v1';
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './todo.jpg'
 ];
 
 self.addEventListener('install', function(event) {
