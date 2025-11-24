@@ -67,10 +67,19 @@ h1{font-size:18px; margin:0; font-weight:700}
   padding:0 12px; outline:none;
 }
 .input{min-width:220px; flex:1}
-.btn{cursor:pointer; transition: all 0.2s ease;}
+.btn{cursor:pointer; transition: all 0.2s ease-out;}
 .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+.btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
 .btn.secondary{background:#f1f5f9; border-color:#cbd5e1; color:#475569;}
-.btn.secondary:hover{background:#e2e8f0; border-color:#94a3b8;}
+.btn.secondary:hover{
+  background:#e2e8f0; 
+  border-color:#94a3b8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
 .btn.ghost{background:transparent}
 .btn.destructive{background:#fef2f2; border-color:#fecaca; color:#dc2626}
 .btn.destructive:hover{background:#fee2e2; border-color:#fca5a5; transform: translateY(-1px);}
@@ -101,13 +110,22 @@ main{max-width:1080px; margin:12px auto 80px; padding:0 16px; display:flex; flex
 
 /* tasks */
 .task{
+  position: relative;
   display:grid; grid-template-columns:24px 1fr auto; gap:10px; align-items:start;
   padding:10px; border:1px solid var(--border); border-radius:10px; background:#fff;
+  animation: fadeIn 0.3s ease-out;
+  margin-bottom: 4px; /* 增加任务间距 */
 }
 .task.done{opacity:.5; filter: grayscale(0.3);}
 .title{font-weight:600; cursor:text; word-break:break-word; line-height:1.4;}
 .meta{font-size:12px; color:var(--muted); display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; line-height:1.3;}
-.actions{display:none; gap:6px; align-items:flex-start; flex-shrink:0;}
+.actions{
+  position: absolute; top: 10px; right: 10px; /* 绝对定位，防止挤压布局 */
+  display:none; gap:6px; align-items:flex-start; flex-shrink:0;
+  background: var(--card); /* 添加背景色防止文字重叠 */
+  padding: 2px 4px;
+  border-radius: 6px;
+}
 .task:hover .actions{display:flex;}
 .actions .btn{white-space:nowrap; font-size:12px; padding:4px 8px; height:auto; min-height:28px;}
 .badge{
@@ -361,9 +379,9 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
 
 /* search hints */
 .search-hints{
-  position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
-  background: #fff; border: 1px solid var(--border); border-top: none;
-  border-radius: 0 0 10px 10px; box-shadow: var(--shadow);
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 10;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 8px; font-size: 12px; color: var(--muted);
   display: none;
 }
@@ -371,6 +389,27 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
 .hint-item{padding: 4px 0; border-bottom: 1px solid var(--border);}
 .hint-item:last-child{border-bottom: none;}
 .hint-syntax{font-family: monospace; background: #f1f5f9; padding: 2px 4px; border-radius: 4px; margin-right: 8px;}
+
+/* 动画 & 空状态 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  margin: 20px 0;
+  animation: fadeIn 0.5s ease-out;
+}
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: var(--text);
+}
 
 @media (max-width: 640px){
   .search-hints{font-size: 11px; padding: 6px;}
@@ -416,6 +455,14 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
   .main-controls .input{min-width:140px; flex:1; max-width:220px;}
   .main-controls .select{min-width:90px;}
   .main-list{max-height:70vh;}
+  .actions {
+    position: static; /* 在移动端恢复静态定位 */
+    grid-area: actions;
+    justify-self: end;
+    margin-top: 8px;
+    gap: 4px;
+    flex-direction: row;
+  }
   .field-style-modal{width:95vw;}
   .style-controls{grid-template-columns:1fr;}
 }
@@ -454,7 +501,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
         <div class="control-group">
           <label>状态:</label>
           <select id="status" class="select">
-            <option value="all">全部</option>
+            <option value="all">所有任务</option>
             <option value="open">未完成</option>
             <option value="actionable" selected>行动中</option>
             <option value="ongoing">正在进行</option>
@@ -484,7 +531,6 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
         <div class="grow"></div>
         <button id="closeDrawer" class="btn">关闭</button>
       </div>
-      <div class="row"><label><input type="checkbox" id="autosync" checked> 自动同步到文本</label></div>
     </div>
     <div class="section">
       <div class="section-title">视图与排序</div>
@@ -710,7 +756,6 @@ const dom = {
   list: document.getElementById('list'),
   drawer: document.getElementById('drawer'),
   closeDrawer: document.getElementById('closeDrawer'),
-  autosync: document.getElementById('autosync'),
   groupBy: document.getElementById('groupBy'),
   sort: document.getElementById('sort'),
   clearDoneBtn: document.getElementById('clearDoneBtn'),
@@ -1110,8 +1155,7 @@ function badge(text, cls=''){ const s=document.createElement('span'); s.classNam
 
 function setTasks(arr, {syncRaw=true}={}) {
   tasks = arr;
-  save(tasks.map(formatLine));
-  if (syncRaw && document.getElementById('autosync').checked) {
+  if (syncRaw) { // 只保留最简化的同步逻辑
     const rawEl = document.getElementById('raw');
     if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
   }
@@ -1148,8 +1192,8 @@ function render() {
   // 排序并持久化顺序到文本
   tasks = sortTasks(tasks, sortSpec);
   save(tasks.map(formatLine));
-  // 使用缓存的dom.autosync和dom.raw
-  if (dom.autosync.checked) {
+  // 自动同步到文本编辑器 (移除所有旧的判断)
+  if (dom.raw) { 
     if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n');
   }
 
@@ -1311,6 +1355,16 @@ function render() {
   }
   list.innerHTML = '';
   list.appendChild(fragment);
+
+  // 检查并显示空状态
+  if (list.children.length === 0) {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'empty-state';
+    const emptyTitle = document.createElement('h3');
+    emptyTitle.textContent = '空空如也';
+    emptyState.append(emptyTitle, '此视图下没有任务');
+    list.appendChild(emptyState);
+  }
 }
 
 function renderTasks(tasksToRender, container) {
@@ -1428,13 +1482,14 @@ function renderTasks(tasksToRender, container) {
     body.append(titleEl, meta);
 
     // 右侧动作：原文（展开在行下）/ 删除（自定义确认）
-    const actions = document.createElement('div'); actions.className='actions';
     const btnRaw = document.createElement('button'); btnRaw.className='btn'; btnRaw.textContent='原文';
     const btnDel = document.createElement('button'); btnDel.className='btn'; btnDel.textContent='删除';
 
+    const actions = document.createElement('div'); actions.className='actions';
     const rawBox = document.createElement('div'); rawBox.className='rawbox';
     const rawText = document.createElement('div'); rawText.className='rawtext'; rawText.textContent = formatLine(t);
     const copyBtn = document.createElement('button'); copyBtn.className='btn'; copyBtn.textContent='复制';
+    
     copyBtn.addEventListener('click', async ()=>{
       try{ await navigator.clipboard.writeText(formatLine(t)); showToast('已复制'); }catch{}
     });
@@ -1955,13 +2010,6 @@ dom.resetBtn.addEventListener('click', ()=> {
   no.onclick  = ()=> bar.remove();
   bar.append(yes, no);
   host.append(bar);
-});
-
-// 同步选项
-dom.autosync.addEventListener('change', (e)=> {
-  if (e.target.checked) {
-    const rawEl = document.getElementById('raw'); if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
-  }
 });
 
 /* ========= 浮动编辑器：打开/关闭/拖动 ========= */
