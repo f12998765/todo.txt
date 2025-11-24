@@ -689,12 +689,55 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
 </div>
 
 <script>
+(function() { // <--- 优化建议：添加 IIFE 开始
+
+/* ========= DOM 元素缓存 ========= */
+const dom = {
+  appTitle: document.getElementById('appTitle'),
+  settingsBtn: document.getElementById('settingsBtn'),
+  search: document.getElementById('search'),
+  clearSearch: document.getElementById('clearSearch'),
+  searchHints: document.getElementById('searchHints'),
+  status: document.getElementById('status'),
+  list: document.getElementById('list'),
+  drawer: document.getElementById('drawer'),
+  closeDrawer: document.getElementById('closeDrawer'),
+  autosync: document.getElementById('autosync'),
+  groupBy: document.getElementById('groupBy'),
+  sort: document.getElementById('sort'),
+  clearDoneBtn: document.getElementById('clearDoneBtn'),
+  clearExpiredBtn: document.getElementById('clearExpiredBtn'),
+  openEditorBtn: document.getElementById('openEditorBtn'),
+  openFieldStyleBtn: document.getElementById('openFieldStyleBtn'),
+  exportBtn: document.getElementById('exportBtn'),
+  importInput: document.getElementById('importInput'),
+  resetBtn: document.getElementById('resetBtn'),
+  settingsConfirmHost: document.getElementById('settingsConfirmHost'),
+  toast: document.getElementById('toast'),
+  editorModal: document.getElementById('editorModal'),
+  modalDragHandle: document.getElementById('modalDragHandle'),
+  closeEditor: document.getElementById('closeEditor'),
+  raw: document.getElementById('raw'),
+  applyTxt: document.getElementById('applyTxt'),
+  fieldStyleModal: document.getElementById('fieldStyleModal'),
+  fieldStyleModalDragHandle: document.getElementById('fieldStyleModalDragHandle'),
+  closeFieldStyle: document.getElementById('closeFieldStyle'),
+  projectPreview: document.getElementById('projectPreview'),
+  contextPreview: document.getElementById('contextPreview'),
+  priorityPreview: document.getElementById('priorityPreview'),
+  datePreview: document.getElementById('datePreview'),
+  urlPreview: document.getElementById('urlPreview'),
+  applyFieldStyles: document.getElementById('applyFieldStyles'),
+  resetFieldStyles: document.getElementById('resetFieldStyles'),
+  // 颜色输入框和选择器，动态获取
+};
+
 /* ========= 存储 ========= */
 const STORE_KEY = 'todotxt.web.final.v1';
 const FIELD_STYLES_KEY = 'todotxt.web.field.styles.v1';
 
-function save(lines) { localStorage.setItem(STORE_KEY, JSON.stringify(lines)); }
-function load() { try { const s=localStorage.getItem(STORE_KEY); return s? JSON.parse(s): []; } catch { return []; } }
+function save(lines) { localStorage.setItem(STORE_KEY, JSON.stringify(lines)); showToast('数据已保存'); }
+function load() { try { const s=localStorage.getItem(STORE_KEY); return s? JSON.parse(s): []; } catch(e) { console.error("Failed to load tasks from localStorage:", e); return []; } }
 
 /* ========= 字段样式系统 ========= */
 function saveFieldStyles(styles) { 
@@ -784,8 +827,9 @@ function humanDiff(ms) {
   if (m>0) return `${m}分钟`;
   return `${s}秒`;
 }
+// 使用缓存的dom.toast
 function showToast(msg, ms=1400){
-  const t = document.getElementById('toast');
+  const t = dom.toast;
   t.textContent = msg; t.classList.add('show');
   clearTimeout(showToast._tid);
   showToast._tid = setTimeout(()=> t.classList.remove('show'), ms);
@@ -849,40 +893,56 @@ function completeAndMaybeRecur(task) {
   task.completedDate = todayDate;
   task.kv['doneat'] = nowFull;
 
-  const rec = task.kv['rec'];
-  if (!rec) return null;
+  const rec = task.kv['rec']; // e.g., '1d', '1w', '1m', '1y'
+  if (!rec) return null; // No recurrence specified
 
-  const start = parseDateMaybe(task.kv['start']);
-  const end = parseDateMaybe(task.kv['end']);
-  const due = parseDateMaybe(task.kv['due']);
-  const t = parseDateMaybe(task.kv['t']);
+  // Deep copy the task to create the next recurring instance
+  const next = JSON.parse(JSON.stringify(task));
 
-  let nextStart = start ? addInterval(start, rec) : null;
-  let nextEnd   = end   ? addInterval(end,   rec) : null;
+  // Parse original dates from the *current* task for iteration
+  let currentStart = parseDateMaybe(task.kv['start']);
+  let currentEnd   = parseDateMaybe(task.kv['end']);
+  let currentDue   = parseDateMaybe(task.kv['due']);
+  let currentT     = parseDateMaybe(task.kv['t']);
 
+  const now = new Date(); // Current time for comparison
+  const todayStartOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at 00:00:00
+
+  // Calculate the next recurrence by simply adding the interval.
+  // The "catch-up" logic is now handled by the caller (e.g., in 'clear expired').
+  let nextStart = currentStart ? addInterval(currentStart, rec) : null;
+  let nextEnd   = currentEnd   ? addInterval(currentEnd,   rec) : null;
+  let nextDue   = currentDue   ? addInterval(currentDue,   rec) : null;
+  let nextT     = currentT     ? addInterval(currentT,     rec) : null;
+
+  // Check 'until' date for the *advanced* next task
   const until = parseDateMaybe(task.kv['until']);
-  const anchorNext = nextStart || (due ? addInterval(due, rec) : (t ? addInterval(t, rec) : null));
-  if (until && anchorNext && anchorNext > until) return null;
-
+  const anchorNext = nextStart || nextDue || nextT; // Use the advanced dates
+  if (until && anchorNext && anchorNext > until) {
+    return null; // The next recurrence is beyond the 'until' date
+  }
+  // Decrement 'count' if present
   let nextCount = task.kv['count'];
   if (nextCount) {
-    const n = Math.max(0, parseInt(nextCount,10)-1);
-    if (n<=0) return null;
+    const n = Math.max(0, parseInt(nextCount, 10) - 1);
+    if (n <= 0) return null; // Count reached zero, no more recurrences
     nextCount = String(n);
   }
 
-  const next = JSON.parse(JSON.stringify(task));
+  // Reset properties for the new task
   next.done = false;
   next.completedDate = null;
   delete next.kv['doneat'];
-  next.createdDate = todayDate;
+  next.createdDate = todayDate; // New task's creation date is today
 
-  if (nextStart) next.kv['start'] = fmtDate(nextStart, true, false);
-  if (nextEnd)   next.kv['end']   = fmtDate(nextEnd,   true, false);
-  if (!nextStart && due) next.kv['due'] = fmtDate(addInterval(due, rec), true, false);
-  if (!nextStart && t)   next.kv['t']   = fmtDate(addInterval(t,   rec), true, false);
-  if (nextCount) next.kv['count'] = nextCount;
+  // Update kv properties with the advanced dates
+  if (nextStart) next.kv['start'] = fmtDate(nextStart, true, false); else delete next.kv['start'];
+  if (nextEnd) next.kv['end'] = fmtDate(nextEnd, true, false); else delete next.kv['end'];
+  if (nextDue) next.kv['due'] = fmtDate(nextDue, true, false); else delete next.kv['due'];
+  if (nextT) next.kv['t'] = fmtDate(nextT, true, false); else delete next.kv['t'];
+  if (nextCount) next.kv['count'] = nextCount; else delete next.kv['count'];
 
+  // Re-format the raw line for the new task
   next.raw = formatLine(next);
   return next;
 }
@@ -1070,18 +1130,18 @@ function inlineEditTask(t, row) {
 
 /* ========= 渲染 ========= */
 function render() {
-  const list = document.getElementById('list');
-  const status = document.getElementById('status').value;
-  const sortSpec = document.getElementById('sort') ? document.getElementById('sort').value : 'priority,due,start,text';
-  const groupBy = document.getElementById('groupBy') ? document.getElementById('groupBy').value : 'none';
-  const searchVal = document.getElementById('search').value.trim();
+  const list = dom.list;
+  const status = dom.status.value;
+  const sortSpec = dom.sort ? dom.sort.value : 'priority,due,start,text';
+  const groupBy = dom.groupBy ? dom.groupBy.value : 'none';
+  const searchVal = dom.search.value.trim();
 
   // 排序并持久化顺序到文本
   tasks = sortTasks(tasks, sortSpec);
   save(tasks.map(formatLine));
-  if (document.getElementById('autosync').checked) {
-    const rawEl = document.getElementById('raw');
-    if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
+  // 使用缓存的dom.autosync和dom.raw
+  if (dom.autosync.checked) {
+    if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n');
   }
 
   // 基于搜索构建视图（智能搜索）
@@ -1170,7 +1230,8 @@ function render() {
   const groups = groupTasks(view, groupBy);
 
   // 渲染
-  list.innerHTML = '';
+  list.innerHTML = ''; // 清空现有列表
+  const fragment = document.createDocumentFragment(); // 创建文档片段
   
   for (const group of groups) {
     // 如果有分组，添加分组标题
@@ -1180,25 +1241,28 @@ function render() {
       
       const groupHeader = document.createElement('div');
       groupHeader.className = 'group-header';
-      groupHeader.innerHTML = `
-        <span>${group.name}</span>
-        <span class="group-count">${group.tasks.length}</span>
-      `;
+      const groupNameSpan = document.createElement('span'); groupNameSpan.textContent = group.name;
+      const groupCountSpan = document.createElement('span'); groupCountSpan.className = 'group-count'; groupCountSpan.textContent = group.tasks.length;
+      groupHeader.append(groupNameSpan, groupCountSpan);
       
       const groupTasks = document.createElement('div');
       groupTasks.className = 'group-tasks';
       
       groupContainer.appendChild(groupHeader);
       groupContainer.appendChild(groupTasks);
-      list.appendChild(groupContainer);
+      
+      // 将分组容器添加到文档片段
+      fragment.appendChild(groupContainer);
       
       // 渲染该分组的任务
       renderTasks(group.tasks, groupTasks);
     } else {
       // 无分组，直接渲染所有任务
-      renderTasks(group.tasks, list);
+      renderTasks(group.tasks, fragment);
     }
   }
+  list.innerHTML = '';
+  list.appendChild(fragment);
 }
 
 function renderTasks(tasksToRender, container) {
@@ -1235,8 +1299,8 @@ function renderTasks(tasksToRender, container) {
     for (const p of t.projects) {
       const b = badge(p); b.classList.add('link', 'proj');
       b.addEventListener('click', ()=> { 
-        document.getElementById('search').value = p;
-        document.getElementById('clearSearch').style.display = 'block';
+        dom.search.value = p;
+        dom.clearSearch.style.display = 'block';
         render(); 
       });
       meta.append(b);
@@ -1244,8 +1308,8 @@ function renderTasks(tasksToRender, container) {
     for (const c of t.contexts) {
       const b = badge(c); b.classList.add('link', 'ctx');
       b.addEventListener('click', ()=> { 
-        document.getElementById('search').value = c;
-        document.getElementById('clearSearch').style.display = 'block';
+        dom.search.value = c;
+        dom.clearSearch.style.display = 'block';
         render(); 
       });
       meta.append(b);
@@ -1353,8 +1417,8 @@ function renderTasks(tasksToRender, container) {
 /* ========= 导入/导出/同步 ========= */
 function applyRawText(text) {
   const lines = text.split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>0);
-  const parsed = lines.map(parseLine).filter(Boolean);
-  setTasks(parsed, {syncRaw:false});
+  const parsed = lines.map(parseLine).filter(Boolean); // 过滤掉解析失败的行
+  setTasks(parsed, {syncRaw:false}); // 不自动同步到raw文本框，因为raw文本框内容已经是最新的
   const rawEl = document.getElementById('raw'); if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
   showToast('已应用文本');
 }
@@ -1369,41 +1433,35 @@ function exportTxt() {
 }
 
 /* ========= 字段样式配置功能 ========= */
-const fieldStyleModal = document.getElementById('fieldStyleModal');
+const fieldStyleModal = dom.fieldStyleModal;
 
 // 更新预览
 function updateFieldStylePreviews() {
-  const projectPreview = document.getElementById('projectPreview');
-  const contextPreview = document.getElementById('contextPreview');
-  const priorityPreview = document.getElementById('priorityPreview');
-  const datePreview = document.getElementById('datePreview');
-  const urlPreview = document.getElementById('urlPreview');
+  dom.projectPreview.style.color = currentFieldStyles.project.color;
+  dom.projectPreview.style.backgroundColor = currentFieldStyles.project.bg;
+  dom.projectPreview.style.borderColor = currentFieldStyles.project.border;
   
-  projectPreview.style.color = currentFieldStyles.project.color;
-  projectPreview.style.backgroundColor = currentFieldStyles.project.bg;
-  projectPreview.style.borderColor = currentFieldStyles.project.border;
+  dom.contextPreview.style.color = currentFieldStyles.context.color;
+  dom.contextPreview.style.backgroundColor = currentFieldStyles.context.bg;
+  dom.contextPreview.style.borderColor = currentFieldStyles.context.border;
   
-  contextPreview.style.color = currentFieldStyles.context.color;
-  contextPreview.style.backgroundColor = currentFieldStyles.context.bg;
-  contextPreview.style.borderColor = currentFieldStyles.context.border;
+  dom.priorityPreview.style.color = currentFieldStyles.priority.color;
+  dom.priorityPreview.style.backgroundColor = currentFieldStyles.priority.bg;
+  dom.priorityPreview.style.borderColor = currentFieldStyles.priority.border;
   
-  priorityPreview.style.color = currentFieldStyles.priority.color;
-  priorityPreview.style.backgroundColor = currentFieldStyles.priority.bg;
-  priorityPreview.style.borderColor = currentFieldStyles.priority.border;
+  dom.datePreview.style.color = currentFieldStyles.date.color;
+  dom.datePreview.style.backgroundColor = currentFieldStyles.date.bg;
+  dom.datePreview.style.borderColor = currentFieldStyles.date.border;
   
-  datePreview.style.color = currentFieldStyles.date.color;
-  datePreview.style.backgroundColor = currentFieldStyles.date.bg;
-  datePreview.style.borderColor = currentFieldStyles.date.border;
-  
-  urlPreview.style.color = currentFieldStyles.url.color;
-  urlPreview.style.backgroundColor = currentFieldStyles.url.bg;
-  urlPreview.style.borderColor = currentFieldStyles.url.border;
+  dom.urlPreview.style.color = currentFieldStyles.url.color;
+  dom.urlPreview.style.backgroundColor = currentFieldStyles.url.bg;
+  dom.urlPreview.style.borderColor = currentFieldStyles.url.border;
 }
 
 // 更新输入框
 function updateFieldStyleInputs() {
-  document.getElementById('projectColorPicker').value = currentFieldStyles.project.color;
-  document.getElementById('projectColorInput').value = currentFieldStyles.project.color;
+  document.getElementById('projectColorPicker').value = currentFieldStyles.project.color; // 使用dom.projectColorPicker
+  document.getElementById('projectColorInput').value = currentFieldStyles.project.color; // 使用dom.projectColorInput
   document.getElementById('projectBgPicker').value = currentFieldStyles.project.bg;
   document.getElementById('projectBgInput').value = currentFieldStyles.project.bg;
   
@@ -1432,43 +1490,37 @@ function updateFieldStyleInputs() {
 function previewFieldStyles(styles) {
   applyFieldStyles(styles);
   updateFieldStylePreviews();
-  // 立即更新预览标签的样式
-  const projectPreview = document.getElementById('projectPreview');
-  const contextPreview = document.getElementById('contextPreview');
-  const priorityPreview = document.getElementById('priorityPreview');
-  const datePreview = document.getElementById('datePreview');
-  const urlPreview = document.getElementById('urlPreview');
+  // 立即更新预览标签的样式 (使用缓存的dom对象)
+  dom.projectPreview.style.color = styles.project.color;
+  dom.projectPreview.style.backgroundColor = styles.project.bg;
+  dom.projectPreview.style.borderColor = styles.project.border;
   
-  projectPreview.style.color = styles.project.color;
-  projectPreview.style.backgroundColor = styles.project.bg;
-  projectPreview.style.borderColor = styles.project.border;
+  dom.contextPreview.style.color = styles.context.color;
+  dom.contextPreview.style.backgroundColor = styles.context.bg;
+  dom.contextPreview.style.borderColor = styles.context.border;
   
-  contextPreview.style.color = styles.context.color;
-  contextPreview.style.backgroundColor = styles.context.bg;
-  contextPreview.style.borderColor = styles.context.border;
+  dom.priorityPreview.style.color = styles.priority.color;
+  dom.priorityPreview.style.backgroundColor = styles.priority.bg;
+  dom.priorityPreview.style.borderColor = styles.priority.border;
   
-  priorityPreview.style.color = styles.priority.color;
-  priorityPreview.style.backgroundColor = styles.priority.bg;
-  priorityPreview.style.borderColor = styles.priority.border;
+  dom.datePreview.style.color = styles.date.color;
+  dom.datePreview.style.backgroundColor = styles.date.bg;
+  dom.datePreview.style.borderColor = styles.date.border;
   
-  datePreview.style.color = styles.date.color;
-  datePreview.style.backgroundColor = styles.date.bg;
-  datePreview.style.borderColor = styles.date.border;
-  
-  urlPreview.style.color = styles.url.color;
-  urlPreview.style.backgroundColor = styles.url.bg;
-  urlPreview.style.borderColor = styles.url.border;
+  dom.urlPreview.style.color = styles.url.color;
+  dom.urlPreview.style.backgroundColor = styles.url.bg;
+  dom.urlPreview.style.borderColor = styles.url.border;
 }
 
 // 打开字段样式配置
-document.getElementById('openFieldStyleBtn').addEventListener('click', () => {
+dom.openFieldStyleBtn.addEventListener('click', () => {
   updateFieldStyleInputs();
   updateFieldStylePreviews();
   fieldStyleModal.classList.add('open');
 });
 
 // 关闭字段样式配置
-document.getElementById('closeFieldStyle').addEventListener('click', () => {
+dom.closeFieldStyle.addEventListener('click', () => {
   fieldStyleModal.classList.remove('open');
   // 恢复到保存的样式
   currentFieldStyles = loadFieldStyles();
@@ -1564,48 +1616,48 @@ function rgbToHex(r, g, b) {
 ['project', 'context', 'priority', 'date', 'url'].forEach(setupColorInputs);
 
 // 应用字段样式
-document.getElementById('applyFieldStyles').addEventListener('click', () => {
+dom.applyFieldStyles.addEventListener('click', () => {
   const newStyles = {
     project: {
-      color: document.getElementById('projectColorInput').value || document.getElementById('projectColorPicker').value,
-      bg: document.getElementById('projectBgInput').value || document.getElementById('projectBgPicker').value,
+      color: dom.projectColorInput.value || dom.projectColorPicker.value,
+      bg: dom.projectBgInput.value || dom.projectBgPicker.value,
       border: currentFieldStyles.project.border
     },
     context: {
-      color: document.getElementById('contextColorInput').value || document.getElementById('contextColorPicker').value,
-      bg: document.getElementById('contextBgInput').value || document.getElementById('contextBgPicker').value,
+      color: dom.contextColorInput.value || dom.contextColorPicker.value,
+      bg: dom.contextBgInput.value || dom.contextBgPicker.value,
       border: currentFieldStyles.context.border
     },
     priority: {
-      color: document.getElementById('priorityColorInput').value || document.getElementById('priorityColorPicker').value,
-      bg: document.getElementById('priorityBgInput').value || document.getElementById('priorityBgPicker').value,
+      color: dom.priorityColorInput.value || dom.priorityColorPicker.value,
+      bg: dom.priorityBgInput.value || dom.priorityBgPicker.value,
       border: currentFieldStyles.priority.border
     },
     date: {
-      color: document.getElementById('dateColorInput').value || document.getElementById('dateColorPicker').value,
-      bg: document.getElementById('dateBgInput').value || document.getElementById('dateBgPicker').value,
+      color: dom.dateColorInput.value || dom.dateColorPicker.value,
+      bg: dom.dateBgInput.value || dom.dateBgPicker.value,
       border: currentFieldStyles.date.border
     },
     url: {
-      color: document.getElementById('urlColorInput').value || document.getElementById('urlColorPicker').value,
-      bg: document.getElementById('urlBgInput').value || document.getElementById('urlBgPicker').value,
+      color: dom.urlColorInput.value || dom.urlColorPicker.value,
+      bg: dom.urlBgInput.value || dom.urlBgPicker.value,
       border: currentFieldStyles.url.border
     }
   };
   
   currentFieldStyles = newStyles;
   saveFieldStyles(currentFieldStyles);
-  applyFieldStyles(currentFieldStyles);
+  applyFieldStyles(currentFieldStyles); // 重新应用样式到CSS变量
   fieldStyleModal.classList.remove('open');
   showToast('字段样式已应用');
 });
 
 // 重置字段样式
-document.getElementById('resetFieldStyles').addEventListener('click', () => {
+dom.resetFieldStyles.addEventListener('click', () => {
   const defaultStyles = getDefaultFieldStyles();
   currentFieldStyles = defaultStyles;
   saveFieldStyles(currentFieldStyles);
-  applyFieldStyles(currentFieldStyles);
+  applyFieldStyles(currentFieldStyles); // 重新应用样式到CSS变量
   updateFieldStyleInputs();
   updateFieldStylePreviews();
   showToast('字段样式已重置');
@@ -1613,7 +1665,8 @@ document.getElementById('resetFieldStyles').addEventListener('click', () => {
 
 // 字段样式配置窗口拖动功能
 const fieldStyleModalDragHandle = document.getElementById('fieldStyleModalDragHandle');
-(function makeFieldStyleModalDraggable(){
+// 使用缓存的dom.fieldStyleModalDragHandle
+(function makeFieldStyleModalDraggable(fieldStyleModal, fieldStyleModalDragHandle){
   let isDown=false, startX=0, startY=0, startLeft=0, startTop=0;
   fieldStyleModalDragHandle.addEventListener('mousedown', (e)=>{
     isDown=true;
@@ -1629,58 +1682,54 @@ const fieldStyleModalDragHandle = document.getElementById('fieldStyleModalDragHa
     fieldStyleModal.style.left = (startLeft + dx) + 'px';
     fieldStyleModal.style.top  = (startTop  + dy) + 'px';
     fieldStyleModal.style.transform = 'translate(0,0)';
-  });
+  }, {passive: true}); // passive listener for better scroll performance
   window.addEventListener('mouseup', ()=> isDown=false);
-})();
+})(dom.fieldStyleModal, dom.fieldStyleModalDragHandle);
 
 /* ========= 事件 ========= */
-document.getElementById('applyTxt').addEventListener('click', ()=> {
-  const el = document.getElementById('raw');
-  applyRawText(el.value);
+dom.applyTxt.addEventListener('click', ()=> {
+  applyRawText(dom.raw.value);
 });
 
-const onSearch = debounce(()=> {
-  const searchInput = document.getElementById('search');
-  const clearBtn = document.getElementById('clearSearch');
-  clearBtn.style.display = searchInput.value.trim() ? 'block' : 'none';
+const onSearch = debounce(() => {
+  dom.clearSearch.style.display = dom.search.value.trim() ? 'block' : 'none';
   render();
 }, 200);
 
-const searchInput = document.getElementById('search');
-const searchHints = document.getElementById('searchHints');
-
-searchInput.addEventListener('input', onSearch);
-searchInput.addEventListener('focus', ()=> {
-  if (!searchInput.value.trim()) searchHints.classList.add('show');
+dom.search.addEventListener('input', onSearch);
+dom.search.addEventListener('focus', ()=> {
+  if (!dom.search.value.trim()) dom.searchHints.classList.add('show');
 });
-searchInput.addEventListener('blur', ()=> {
-  setTimeout(()=> searchHints.classList.remove('show'), 150);
+dom.search.addEventListener('blur', ()=> {
+  // 使用setTimeout延迟隐藏，以便点击提示项
+  setTimeout(()=> dom.searchHints.classList.remove('show'), 150);
 });
 
-document.getElementById('clearSearch').addEventListener('click', ()=> {
-  searchInput.value = '';
-  document.getElementById('clearSearch').style.display = 'none';
-  searchHints.classList.remove('show');
+dom.clearSearch.addEventListener('click', ()=> {
+  dom.search.value = '';
+  dom.clearSearch.style.display = 'none';
+  dom.searchHints.classList.remove('show');
   render();
 });
 
-document.getElementById('status').addEventListener('input', render);
+// 使用缓存的dom.status
+dom.status.addEventListener('input', render);
 
 // 标题点击刷新
-document.getElementById('appTitle').addEventListener('click', ()=> {
+dom.appTitle.addEventListener('click', ()=> {
   location.reload();
 });
 
 // 设置面板
-const drawer = document.getElementById('drawer');
-document.getElementById('settingsBtn').addEventListener('click', ()=> drawer.classList.add('open'));
-document.getElementById('closeDrawer').addEventListener('click', ()=> drawer.classList.remove('open'));
-document.getElementById('sort').addEventListener('input', render);
-document.getElementById('groupBy').addEventListener('input', render);
+// 使用缓存的dom.drawer, dom.settingsBtn, dom.closeDrawer, dom.sort, dom.groupBy
+dom.settingsBtn.addEventListener('click', ()=> dom.drawer.classList.add('open'));
+dom.closeDrawer.addEventListener('click', ()=> dom.drawer.classList.remove('open'));
+dom.sort.addEventListener('input', render);
+dom.groupBy.addEventListener('input', render);
 
 // 清理已完成（修复：始终基于当前 tasks 过滤 done=true）
-document.getElementById('clearDoneBtn').addEventListener('click', ()=> {
-  const host = document.getElementById('settingsConfirmHost');
+dom.clearDoneBtn.addEventListener('click', ()=> {
+  const host = dom.settingsConfirmHost;
   host.innerHTML = '';
   const bar = document.createElement('div'); bar.className='confirm-bar';
   bar.innerHTML = '<span>清理所有已完成任务？</span>';
@@ -1693,8 +1742,8 @@ document.getElementById('clearDoneBtn').addEventListener('click', ()=> {
 });
 
 // 清理已过期任务
-document.getElementById('clearExpiredBtn').addEventListener('click', ()=> {
-  const host = document.getElementById('settingsConfirmHost');
+dom.clearExpiredBtn.addEventListener('click', ()=> {
+  const host = dom.settingsConfirmHost;
   host.innerHTML = '';
   
   // 计算过期任务数量
@@ -1730,21 +1779,33 @@ document.getElementById('clearExpiredBtn').addEventListener('click', ()=> {
     let newTasks = tasks.slice();
     let generatedCount = 0;
     
-    // 处理过期的周期任务：生成下一个周期并移除当前过期的
+    // 处理过期的周期任务：循环生成下一个周期，直到它不再过期
     for (const expiredTask of expiredRecurring) {
-      const nextTask = completeAndMaybeRecur(JSON.parse(JSON.stringify(expiredTask)));
-      if (nextTask) {
-        // 重置为未完成状态，因为这是新生成的任务
-        nextTask.done = false;
-        nextTask.completedDate = null;
-        delete nextTask.kv['doneat'];
-        nextTask.raw = formatLine(nextTask);
+      let nextCandidate = completeAndMaybeRecur(JSON.parse(JSON.stringify(expiredTask)));
+      let iterationCount = 0;
+      const MAX_ITERATIONS = 365 * 5; // Prevent infinite loops
+
+      // This is the "catch-up" loop. Keep generating the next task until it's no longer expired.
+      while (nextCandidate && iterationCount < MAX_ITERATIONS) {
+        const candDue = parseDateMaybe(nextCandidate.kv['due']);
+        const candEnd = parseDateMaybe(nextCandidate.kv['end']);
+        const isStillExpired = (candDue && candDue < today) || (candEnd && candEnd < now);
         
+        if (!isStillExpired) {
+          break; // Found a valid, non-expired future task.
+        }
+        
+        // If still expired, generate the next one from the current candidate.
+        nextCandidate = completeAndMaybeRecur(nextCandidate);
+        iterationCount++;
+      }
+
+      if (nextCandidate) {
         const idx = newTasks.indexOf(expiredTask);
-        newTasks[idx] = nextTask; // 替换过期任务为新周期任务
+        newTasks[idx] = nextCandidate; // Replace the expired task with the valid future one.
         generatedCount++;
       } else {
-        // 如果无法生成下一个周期（如达到count限制），则直接移除
+        // If no future task could be generated (e.g., 'until' or 'count' limit reached), remove the expired one.
         newTasks = newTasks.filter(t => t !== expiredTask);
       }
     }
@@ -1767,29 +1828,29 @@ document.getElementById('clearExpiredBtn').addEventListener('click', ()=> {
 });
 
 // 导入/导出/清空
-document.getElementById('exportBtn').addEventListener('click', exportTxt);
-document.getElementById('importInput').addEventListener('change', async (e)=> {
+dom.exportBtn.addEventListener('click', exportTxt);
+dom.importInput.addEventListener('change', async (e)=> {
   const f = e.target.files[0]; if (!f) return;
   const text = await f.text();
   applyRawText(text);
-  const rawEl = document.getElementById('raw'); if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
+  if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n');
   showToast('已导入');
 });
-document.getElementById('resetBtn').addEventListener('click', ()=> {
-  const host = document.getElementById('settingsConfirmHost');
+dom.resetBtn.addEventListener('click', ()=> {
+  const host = dom.settingsConfirmHost;
   host.innerHTML = '';
   const bar = document.createElement('div'); bar.className='confirm-bar';
   bar.innerHTML = '<span>确认清空全部任务与文本？</span>';
   const yes = document.createElement('button'); yes.className='btn destructive'; yes.textContent='清空';
   const no = document.createElement('button'); no.className='btn'; no.textContent='取消';
-  yes.onclick = ()=> { setTasks([], {syncRaw:true}); const rawEl=document.getElementById('raw'); if (rawEl) rawEl.value=''; bar.remove(); showToast('已清空'); };
+  yes.onclick = ()=> { setTasks([], {syncRaw:true}); if (dom.raw) dom.raw.value=''; bar.remove(); showToast('已清空'); };
   no.onclick  = ()=> bar.remove();
   bar.append(yes, no);
   host.append(bar);
 });
 
 // 同步选项
-document.getElementById('autosync').addEventListener('change', (e)=> {
+dom.autosync.addEventListener('change', (e)=> {
   if (e.target.checked) {
     const rawEl = document.getElementById('raw'); if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
   }
@@ -1797,13 +1858,13 @@ document.getElementById('autosync').addEventListener('change', (e)=> {
 
 /* ========= 浮动编辑器：打开/关闭/拖动 ========= */
 const modal = document.getElementById('editorModal');
-const dragHandle = document.getElementById('modalDragHandle');
-document.getElementById('openEditorBtn').addEventListener('click', ()=> {
-  document.getElementById('raw').value = tasks.map(formatLine).join('\n');
-  modal.classList.add('open');
+// 使用缓存的dom.editorModal, dom.modalDragHandle, dom.openEditorBtn, dom.closeEditor, dom.raw
+dom.openEditorBtn.addEventListener('click', ()=> {
+  dom.raw.value = tasks.map(formatLine).join('\n');
+  dom.editorModal.classList.add('open');
 });
-document.getElementById('closeEditor').addEventListener('click', ()=> modal.classList.remove('open'));
-
+dom.closeEditor.addEventListener('click', ()=> dom.editorModal.classList.remove('open'));
+const dragHandle = dom.modalDragHandle; // 确保拖动句柄变量被正确赋值
 // 拖动
 (function makeDraggable(){
   let isDown=false, startX=0, startY=0, startLeft=0, startTop=0;
@@ -1821,12 +1882,12 @@ document.getElementById('closeEditor').addEventListener('click', ()=> modal.clas
     modal.style.left = (startLeft + dx) + 'px';
     modal.style.top  = (startTop  + dy) + 'px';
     modal.style.transform = 'translate(0,0)'; // detach center transform after drag
-  });
+  }, {passive: true}); // passive listener for better scroll performance
   window.addEventListener('mouseup', ()=> isDown=false);
 })();
 
 /* ========= 文本编辑快捷保存 ========= */
-document.getElementById('raw').addEventListener('keydown', (e)=> {
+dom.raw.addEventListener('keydown', (e)=> {
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s') { e.preventDefault(); applyRawText(e.target.value); }
 });
 
@@ -1870,12 +1931,14 @@ if (tasks.length===0) {
     'Write report +Work @computer due:2025-09-30',
     'Buy milk @errands'
   ].join('\n');
-  applyRawText(seed);
-  const rawEl = document.getElementById('raw'); if (rawEl) rawEl.value = seed;
+  applyRawText(seed); // 这会调用setTasks，进而调用render
+  if (dom.raw) dom.raw.value = seed; // 确保raw文本框也显示种子数据
 } else {
-  const rawEl = document.getElementById('raw'); if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
+  if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n');
   render();
 }
+
+})(); // <--- 优化建议：添加 IIFE 结束
 </script>
 </body>
 </html>
