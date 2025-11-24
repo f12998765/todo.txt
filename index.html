@@ -420,6 +420,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
   .style-controls{grid-template-columns:1fr;}
 }
 </style>
+<style>.control-group { display: flex; align-items: center; gap: 8px; }</style>
 </head>
 <body>
 
@@ -434,10 +435,10 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
 </header>
 
 <main>
-  <div class="main-header">
+  <div class="main-header" style="justify-content: space-between;">
     <div class="main-controls">
       <div style="position: relative;">
-        <input id="search" class="input" placeholder="🔍 搜索任务、项目、上下文..." style="padding-left: 12px; min-width: 200px;" />
+        <input id="search" class="input" placeholder="🔍 搜索任务、项目、上下文..." style="padding-left: 12px;" />
         <button id="clearSearch" class="btn" style="position: absolute; right: 2px; top: 2px; height: 32px; padding: 0 8px; display: none; background: transparent; border: none; color: var(--muted);">✕</button>
         <div id="searchHints" class="search-hints">
           <div class="hint-item"><span class="hint-syntax">+项目名</span>搜索特定项目</div>
@@ -447,14 +448,31 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
           <div class="hint-item"><span class="hint-syntax">关键词</span>搜索任务内容</div>
         </div>
       </div>
-      <select id="status" class="select">
-        <option value="all">全部</option>
-        <option value="open">未完成</option>
-        <option value="done">已完成</option>
-        <option value="ongoing">正在进行</option>
-        <option value="pending">未开始</option>
-        <option value="expired">已过期</option>
-      </select>
+    </div>
+    <div class="main-controls">
+        <button id="quickCleanupBtn" class="btn settings-btn" title="清理已过期任务" style="display: none;">🧹</button>
+        <div class="control-group">
+          <label>状态:</label>
+          <select id="status" class="select">
+            <option value="all">全部</option>
+            <option value="open">未完成</option>
+            <option value="actionable" selected>行动中</option>
+            <option value="ongoing">正在进行</option>
+            <option value="pending">未开始</option>
+            <option value="expired">已过期</option>
+            <option value="done">已完成</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>分组:</label>
+          <select id="groupBy" class="select">
+            <option value="none">不分组</option>
+            <option value="project" selected>按项目分组</option>
+            <option value="context">按上下文分组</option>
+            <option value="priority">按优先级分组</option>
+            <option value="status">按状态分组</option>
+          </select>
+        </div>
     </div>
   </div>
   <div id="list" class="list main-list"></div>
@@ -470,16 +488,6 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
     </div>
     <div class="section">
       <div class="section-title">视图与排序</div>
-      <div class="row">
-        <label style="font-size:13px; color:#666;">分组方式:</label>
-        <select id="groupBy" class="select" style="flex: 1;">
-          <option value="none">不分组</option>
-          <option value="project">按项目分组</option>
-          <option value="context">按上下文分组</option>
-          <option value="priority">按优先级分组</option>
-          <option value="status">按状态分组</option>
-        </select>
-      </div>
       <div class="row">
         <label style="font-size:13px; color:#666;">排序方式:</label>
         <select id="sort" class="select" style="flex: 1;">
@@ -706,6 +714,7 @@ const dom = {
   groupBy: document.getElementById('groupBy'),
   sort: document.getElementById('sort'),
   clearDoneBtn: document.getElementById('clearDoneBtn'),
+  quickCleanupBtn: document.getElementById('quickCleanupBtn'),
   clearExpiredBtn: document.getElementById('clearExpiredBtn'),
   openEditorBtn: document.getElementById('openEditorBtn'),
   openFieldStyleBtn: document.getElementById('openFieldStyleBtn'),
@@ -1144,6 +1153,18 @@ function render() {
     if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n');
   }
 
+  // 检查并显示/隐藏快速清理按钮
+  const now = new Date();
+  const today = new Date(now.toDateString());
+  const hasExpired = tasks.some(t => {
+    if (t.done) return false;
+    const due = parseDateMaybe(t.kv['due']);
+    const end = parseDateMaybe(t.kv['end']);
+    return (due && due < today) || (end && end < now);
+  });
+  dom.quickCleanupBtn.style.display = hasExpired ? 'flex' : 'none';
+
+
   // 基于搜索构建视图（智能搜索）
   let view = tasks.slice();
   if (searchVal) {
@@ -1223,6 +1244,33 @@ function render() {
       const due = parseDateMaybe(t.kv['due']);
       const end = parseDateMaybe(t.kv['end']);
       return (due && due < today) || (end && end < now);
+    });
+  } else if (status === 'actionable') {
+    // 行动中：所有未完成的任务，包括“正在进行”和“已过期”
+    const now = new Date();
+    const today = new Date(now.toDateString());
+    view = view.filter(t => {
+      if (t.done) return false;
+      
+      // 检查是否是“正在进行”
+      const start = parseDateMaybe(t.kv['start']);
+      const end = parseDateMaybe(t.kv['end']);
+      const due = parseDateMaybe(t.kv['due']);
+      let isOngoing = false;
+      if (start && now >= start) {
+        if (!end || now < end) isOngoing = true;
+      }
+      if (!start && (due || end)) {
+        const deadline = due || end;
+        if (deadline >= (due ? today : now)) isOngoing = true;
+      }
+      if (!start && !end && !due) isOngoing = true;
+      if (isOngoing) return true;
+
+      // 检查是否是“已过期”
+      if ((due && due < today) || (end && end < now)) return true; // 'due' and 'end' are already declared above
+      
+      return false;
     });
   }
 
@@ -1727,6 +1775,109 @@ dom.closeDrawer.addEventListener('click', ()=> dom.drawer.classList.remove('open
 dom.sort.addEventListener('input', render);
 dom.groupBy.addEventListener('input', render);
 
+// 创建一个可复用的清理函数
+function performExpiredCleanup() {
+  const now = new Date();
+  const today = new Date(now.toDateString());
+  const expiredTasks = tasks.filter(t => {
+    if (t.done) return false;
+    const due = parseDateMaybe(t.kv['due']);
+    const end = parseDateMaybe(t.kv['end']);
+    return (due && due < today) || (end && end < now);
+  });
+
+  if (expiredTasks.length === 0) return;
+
+  const expiredRecurring = expiredTasks.filter(t => t.kv['rec']);
+  const expiredNormal = expiredTasks.filter(t => !t.kv['rec']);
+
+  let newTasks = tasks.slice();
+  let generatedCount = 0;
+
+  for (const expiredTask of expiredRecurring) {
+    let nextCandidate = completeAndMaybeRecur(JSON.parse(JSON.stringify(expiredTask)));
+    let iterationCount = 0;
+    const MAX_ITERATIONS = 365 * 5;
+    while (nextCandidate && iterationCount < MAX_ITERATIONS) {
+      const candDue = parseDateMaybe(nextCandidate.kv['due']);
+      const candEnd = parseDateMaybe(nextCandidate.kv['end']);
+      const isStillExpired = (candDue && candDue < today) || (candEnd && candEnd < now);
+      if (!isStillExpired) break;
+      nextCandidate = completeAndMaybeRecur(nextCandidate);
+      iterationCount++;
+    }
+    if (nextCandidate) {
+      const idx = newTasks.indexOf(expiredTask);
+      newTasks[idx] = nextCandidate;
+      generatedCount++;
+    } else {
+      newTasks = newTasks.filter(t => t !== expiredTask);
+    }
+  }
+
+  newTasks = newTasks.filter(t => !expiredNormal.includes(t));
+  setTasks(newTasks, { syncRaw: true });
+
+  let toastMsg = `已清理 ${expiredTasks.length} 个过期任务`;
+  if (generatedCount > 0) {
+    toastMsg += `，生成 ${generatedCount} 个新周期任务`;
+  }
+  showToast(toastMsg);
+}
+
+// 快速清理按钮 (直接执行清理逻辑，而不是模拟点击)
+dom.quickCleanupBtn.addEventListener('click', () => {
+  // 将确认框附加到主列表的顶部，确保可见
+  const host = dom.list; 
+
+  // 计算过期任务
+  const now = new Date();
+  const today = new Date(now.toDateString());
+  const expiredTasks = tasks.filter(t => {
+    if (t.done) return false;
+    const due = parseDateMaybe(t.kv['due']);
+    const end = parseDateMaybe(t.kv['end']);
+    return (due && due < today) || (end && end < now);
+  });
+
+  if (expiredTasks.length === 0) {
+    // 理论上按钮不显示时不会触发，但作为安全措施
+    showToast('没有已过期的任务');
+    return;
+  }
+
+  // 移除可能存在的旧确认框
+  const oldConfirm = host.querySelector('.confirm-bar');
+  if (oldConfirm) oldConfirm.remove();
+
+  // 创建新的确认框
+  const expiredRecurring = expiredTasks.filter(t => t.kv['rec']);
+  const bar = document.createElement('div');
+  bar.className = 'confirm-bar';
+  bar.style.margin = '0 0 12px 0'; // 调整边距
+  let message = `清理 ${expiredTasks.length} 个已过期任务？`;
+  if (expiredRecurring.length > 0) {
+    message += ` (包括 ${expiredRecurring.length} 个周期任务，将生成新周期)`;
+  }
+  bar.innerHTML = `<span>${message}</span>`;
+
+  const yes = document.createElement('button');
+  yes.className = 'btn destructive';
+  yes.textContent = '清理';
+  const no = document.createElement('button');
+  no.className = 'btn';
+  no.textContent = '取消';
+
+  yes.onclick = () => {
+    bar.remove(); // 先移除确认框
+    performExpiredCleanup(); // 然后执行清理
+  };
+  no.onclick = () => bar.remove();
+
+  bar.append(yes, no);
+  host.prepend(bar); // 插入到列表顶部
+});
+
 // 清理已完成（修复：始终基于当前 tasks 过滤 done=true）
 dom.clearDoneBtn.addEventListener('click', ()=> {
   const host = dom.settingsConfirmHost;
@@ -1776,51 +1927,8 @@ dom.clearExpiredBtn.addEventListener('click', ()=> {
   const yes = document.createElement('button'); yes.className='btn destructive'; yes.textContent='清理';
   const no = document.createElement('button'); no.className='btn'; no.textContent='取消';
   yes.onclick = ()=> { 
-    let newTasks = tasks.slice();
-    let generatedCount = 0;
-    
-    // 处理过期的周期任务：循环生成下一个周期，直到它不再过期
-    for (const expiredTask of expiredRecurring) {
-      let nextCandidate = completeAndMaybeRecur(JSON.parse(JSON.stringify(expiredTask)));
-      let iterationCount = 0;
-      const MAX_ITERATIONS = 365 * 5; // Prevent infinite loops
-
-      // This is the "catch-up" loop. Keep generating the next task until it's no longer expired.
-      while (nextCandidate && iterationCount < MAX_ITERATIONS) {
-        const candDue = parseDateMaybe(nextCandidate.kv['due']);
-        const candEnd = parseDateMaybe(nextCandidate.kv['end']);
-        const isStillExpired = (candDue && candDue < today) || (candEnd && candEnd < now);
-        
-        if (!isStillExpired) {
-          break; // Found a valid, non-expired future task.
-        }
-        
-        // If still expired, generate the next one from the current candidate.
-        nextCandidate = completeAndMaybeRecur(nextCandidate);
-        iterationCount++;
-      }
-
-      if (nextCandidate) {
-        const idx = newTasks.indexOf(expiredTask);
-        newTasks[idx] = nextCandidate; // Replace the expired task with the valid future one.
-        generatedCount++;
-      } else {
-        // If no future task could be generated (e.g., 'until' or 'count' limit reached), remove the expired one.
-        newTasks = newTasks.filter(t => t !== expiredTask);
-      }
-    }
-    
-    // 移除过期的普通任务
-    newTasks = newTasks.filter(t => !expiredNormal.includes(t));
-    
-    setTasks(newTasks, {syncRaw:true}); 
-    bar.remove(); 
-    
-    let toastMsg = `已清理 ${expiredTasks.length} 个过期任务`;
-    if (generatedCount > 0) {
-      toastMsg += `，生成 ${generatedCount} 个新周期任务`;
-    }
-    showToast(toastMsg); 
+    bar.remove(); // 先移除确认框
+    performExpiredCleanup(); // 然后执行清理
   };
   no.onclick = ()=> bar.remove();
   bar.append(yes, no);
