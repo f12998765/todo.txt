@@ -1184,9 +1184,8 @@ function describeTaskTime(t, now=new Date()){
 function badge(text, cls=''){ const s=document.createElement('span'); s.className='badge'+(cls? ' '+cls:''); s.textContent=text; return s; }
 
 function setTasks(arr, {syncRaw=true, fromSync=false}={}) {
-  tasks = arr; // 移除自动上传逻辑
-  if (!fromSync) uploadToGist(); // 如果不是来自同步操作的更新，则上传
-  if (syncRaw) { // 只保留最简化的同步逻辑
+  tasks = arr;
+  if (syncRaw) {
     const rawEl = document.getElementById('raw');
     if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
   }
