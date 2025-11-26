@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>todo.txt · Web</title>
+<title>todo.txt</title>
 
 <!-- PWA Meta Tags -->
-<meta name="description" content="功能强大的todo.txt任务管理应用，支持项目分组、智能搜索、字段样式自定义等功能">
+<meta name="description" content="功能强大的todo.txt任务管理应用">
 <meta name="theme-color" content="#3b82f6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -68,6 +68,9 @@ h1{font-size:18px; margin:0; font-weight:700}
   padding:0 12px; outline:none;
 }
 .input{min-width:220px; flex:1}
+.btn_full {
+   width: 100%;
+}
 .btn{cursor:pointer; transition: all 0.2s ease-out;}
 .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
 .btn.primary:hover {
@@ -84,6 +87,53 @@ h1{font-size:18px; margin:0; font-weight:700}
 .btn.ghost{background:transparent}
 .btn.destructive{background:#fef2f2; border-color:#fecaca; color:#dc2626}
 .btn.destructive:hover{background:#fee2e2; border-color:#fca5a5; transform: translateY(-1px);}
+
+/* 确保搜索框及清空按钮的容器行为 */
+.search-wrapper {
+  position: relative; /* 保持原有的相对定位 */
+  flex-grow: 1; /* 允许其在有空间时增长 */
+  flex-shrink: 0; /* 防止其过度缩小，保持最小宽度 */
+  min-width: 220px; /* 默认最小宽度 (与 input 相同或稍大) */
+  max-width: 100%; /* 避免超出父容器 */
+}
+
+/* 优化搜索输入框的样式，让其完全填充其父容器的可用空间 */
+.search-wrapper #search {
+  width: 100%; /* 让输入框填充父容器 */
+  min-width: unset; /* 移除 input 自身的 min-width 限制，由 search-wrapper 控制 */
+  flex: none; /* 移除 input 自身的 flex 属性，由 search-wrapper 控制 */
+  padding-right: 36px; /* 留出空间给 clearSearch 按钮 */
+}
+
+/* 确保清空按钮始终可见且不影响布局 */
+#clearSearch {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  height: 32px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  display: none; /* 默认隐藏，JS 控制显示 */
+}
+
+/* 针对移动设备的调整 */
+@media (max-width: 640px){
+  .search-wrapper {
+    min-width: 100%; /* 在小屏幕上让搜索框容器占据整行 */
+    /* max-width 可以保持，或者根据需要调整 */
+  }
+  /* main-controls 中的 input min-width 可以移除或调整，因为它现在被 .search-wrapper 控制 */
+  .main-controls .input { /* 移除此规则对 search input 的影响 */
+    min-width: unset;
+    max-width: unset;
+  }
+  /* 也可以专门为小屏幕下的搜索输入框设置更合适的 min-width */
+  .search-wrapper #search {
+    min-width: 140px; /* 或者更小，以适应移动设备 */
+  }
+}
 
 /* filter group styles */
 .filter-group{display:flex; gap:8px; align-items:center;}
@@ -104,7 +154,7 @@ h1{font-size:18px; margin:0; font-weight:700}
 
 main{max-width:1080px; margin:12px auto 80px; padding:0 16px; display:flex; flex-direction:column; gap:16px}
 .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:12px; box-shadow: var(--shadow)}
-.main-header{display:flex; align-items:center; justify-content:flex-end; padding:0 4px; margin-bottom:12px;}
+.main-header{display:flex; align-items:center; padding:0 4px; margin-bottom:12px; justify-content: space-between;} /* Moved inline style */
 .main-controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
 .list{display:flex; flex-direction:column; gap:10px; padding-right:6px; padding-bottom:60px;}
 .main-list{padding-right:8px;}
@@ -187,6 +237,14 @@ main{max-width:1080px; margin:12px auto 80px; padding:0 16px; display:flex; flex
 .section-title{font-weight:600; font-size:13px; color:#4b5563; margin:6px 0}
 .grid{display:grid; grid-template-columns: 1fr 1fr; gap:8px}
 .row{display:flex; gap:8px; align-items:center; margin:6px 0}
+/* Moved inline styles */
+.control-group label {
+  font-size:13px;
+  color:#666;
+}
+#sort.select {
+  flex: 1;
+}
 
 /* 分组样式 */
 .group-container{margin-bottom:20px;}
@@ -432,6 +490,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
   .task .actions{
     grid-area:actions; justify-self:end; margin-top:8px;
     gap:4px; flex-direction:row;
+    position: static; /* 在移动端恢复静态定位 */
   }
   .actions .btn{
     height:28px; padding:4px 8px; font-size:11px; 
@@ -456,14 +515,6 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
   .main-controls .input{min-width:140px; flex:1; max-width:220px;}
   .main-controls .select{min-width:90px;}
   .main-list{max-height:70vh;}
-  .actions {
-    position: static; /* 在移动端恢复静态定位 */
-    grid-area: actions;
-    justify-self: end;
-    margin-top: 8px;
-    gap: 4px;
-    flex-direction: row;
-  }
   .field-style-modal{width:95vw;}
   .style-controls{grid-template-columns:1fr;}
 }
@@ -475,7 +526,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
 <header>
   <div class="container">
     <div class="row">
-      <div id="appTitle" style="cursor: pointer; display: flex; align-items: center;" title="点击刷新">
+      <div id="appTitle" title="点击刷新"> <!-- Removed inline styles -->
         <img src="./todo.jpg" alt="todo.txt icon" style="height: 48px; width: 48px; border-radius: 8px; object-fit: cover;">
       </div>
       <div class="grow"></div>
@@ -485,11 +536,11 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
 </header>
 
 <main>
-  <div class="main-header" style="justify-content: space-between;">
+  <div class="main-header"> <!-- Removed inline style -->
     <div class="main-controls">
-      <div style="position: relative;">
-        <input id="search" class="input" placeholder="🔍 搜索任务、项目、上下文..." style="padding-left: 12px;" />
-        <button id="clearSearch" class="btn" style="position: absolute; right: 2px; top: 2px; height: 32px; padding: 0 8px; display: none; background: transparent; border: none; color: var(--muted);">✕</button>
+      <div class="search-wrapper"> <!-- Added class: search-wrapper -->
+        <input id="search" class="input search-input" placeholder="🔍 搜索任务、项目、上下文..." />
+        <button id="clearSearch" class="btn">❌</button>
         <div id="searchHints" class="search-hints">
           <div class="hint-item"><span class="hint-syntax">+项目名</span>搜索特定项目</div>
           <div class="hint-item"><span class="hint-syntax">@上下文</span>搜索特定上下文</div>
@@ -500,9 +551,9 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
       </div>
     </div>
     <div class="main-controls">
-        <button id="quickCleanupBtn" class="btn settings-btn" title="清理已过期任务" style="display: none;">🧹</button>
+        <button id="quickCleanupBtn" class="btn settings-btn" title="清理已过期任务"></button> <!-- Removed inline style, display handled by JS -->
         <div class="control-group">
-          <label>状态:</label>
+          <label>状态:</label> <!-- Removed inline style -->
           <select id="status" class="select">
             <option value="all">所有任务</option>
             <option value="open">未完成</option>
@@ -514,7 +565,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
           </select>
         </div>
         <div class="control-group">
-          <label>分组:</label>
+          <label>分组:</label> <!-- Removed inline style -->
           <select id="groupBy" class="select">
             <option value="none">不分组</option>
             <option value="project" selected>按项目分组</option>
@@ -538,8 +589,8 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
     <div class="section">
       <div class="section-title">视图与排序</div>
       <div class="row">
-        <label style="font-size:13px; color:#666;">排序方式:</label>
-        <select id="sort" class="select" style="flex: 1;">
+        <label>排序方式:</label> <!-- Removed inline style -->
+        <select id="sort" class="select"> <!-- Removed inline style -->
           <option value="priority,due,start,text">优先级→截止→开始→文本</option>
           <option value="due,start,priority,text">截止→开始→优先级→文本</option>
           <option value="countdown,priority,text">倒计时→优先级→文本</option>
@@ -562,14 +613,14 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
     <div class="section">
       <div class="section-title">文本编辑</div>
       <div class="row">
-        <button id="openEditorBtn" class="btn primary" style="flex: 1;">打开 todo.txt 编辑器</button>
+        <button id="openEditorBtn" class="btn primary btn_full">打开 todo.txt 编辑器</button> <!-- Removed inline style -->
       </div>
     </div>
 
     <div class="section">
       <div class="section-title">字段样式</div>
       <div class="row">
-        <button id="openFieldStyleBtn" class="btn primary" style="flex: 1;">自定义字段样式</button>
+        <button id="openFieldStyleBtn" class="btn primary btn_full">自定义字段样式</button> <!-- Removed inline style -->
       </div>
     </div>
 
@@ -583,7 +634,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
         <input id="githubPat" type="password" class="input" placeholder="GitHub Personal Access Token (PAT)" autocomplete="current-password">
       </div>
       <div class="row">
-        <button id="saveGistSettings" class="btn secondary" style="flex: 1;">保存凭据</button>
+        <button id="saveGistSettings" class="btn secondary btn_full">保存凭据</button> <!-- Removed inline style -->
       </div>
       <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 8px;">
         <button id="pullFromGistBtn" class="btn secondary">拉取 (Pull)</button>
@@ -606,7 +657,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
     <div class="section">
       <div class="section-title">危险操作</div>
       <div class="row">
-        <button id="resetBtn" class="btn destructive" style="flex: 1;">清空全部数据</button>
+        <button id="resetBtn" class="btn destructive btn_full">清空全部数据</button> <!-- Removed inline style -->
       </div>
       <div id="settingsConfirmHost"></div>
     </div>
@@ -765,7 +816,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
 </div>
 
 <script>
-(function() { // <--- 优化建议：添加 IIFE 开始
+(function() {
 
 /* ========= DOM 元素缓存 ========= */
 const dom = {
@@ -811,13 +862,33 @@ const dom = {
   urlPreview: document.getElementById('urlPreview'),
   applyFieldStyles: document.getElementById('applyFieldStyles'),
   resetFieldStyles: document.getElementById('resetFieldStyles'),
-  // 颜色输入框和选择器，动态获取
+  // 颜色输入框和选择器，现在也加入缓存
+  projectColorPicker: document.getElementById('projectColorPicker'),
+  projectColorInput: document.getElementById('projectColorInput'),
+  projectBgPicker: document.getElementById('projectBgPicker'),
+  projectBgInput: document.getElementById('projectBgInput'),
+  contextColorPicker: document.getElementById('contextColorPicker'),
+  contextColorInput: document.getElementById('contextColorInput'),
+  contextBgPicker: document.getElementById('contextBgPicker'),
+  contextBgInput: document.getElementById('contextBgInput'),
+  priorityColorPicker: document.getElementById('priorityColorPicker'),
+  priorityColorInput: document.getElementById('priorityColorInput'),
+  priorityBgPicker: document.getElementById('priorityBgPicker'),
+  priorityBgInput: document.getElementById('priorityBgInput'),
+  dateColorPicker: document.getElementById('dateColorPicker'),
+  dateColorInput: document.getElementById('dateColorInput'),
+  dateBgPicker: document.getElementById('dateBgPicker'),
+  dateBgInput: document.getElementById('dateBgInput'),
+  urlColorPicker: document.getElementById('urlColorPicker'),
+  urlColorInput: document.getElementById('urlColorInput'),
+  urlBgPicker: document.getElementById('urlBgPicker'),
+  urlBgInput: document.getElementById('urlBgInput'),
 };
 
 /* ========= 存储 ========= */
 const STORE_KEY = 'todotxt.web.final.v1';
 const FIELD_STYLES_KEY = 'todotxt.web.field.styles.v1';
-const GIST_PAT_KEY = 'todotxt.gist.pat';
+const GIST_PAT_KEY = 'todotxt.gist.pat'; // IMPORTANT: Storing PAT in localStorage is susceptible to XSS. User should be aware.
 const GIST_ID_KEY = 'todotxt.gist.id';
 
 function save(lines) { localStorage.setItem(STORE_KEY, JSON.stringify(lines)); }
@@ -911,7 +982,6 @@ function humanDiff(ms) {
   if (m>0) return `${m}分钟`;
   return `${s}秒`;
 }
-// 使用缓存的dom.toast
 function showToast(msg, ms=1400){
   const t = dom.toast;
   t.textContent = msg; t.classList.add('show');
@@ -946,7 +1016,7 @@ function parseLine(line) {
     } else rest.push(t);
   }
   o.text = rest.join(' ').trim();
-  o.raw = formatLine(o);
+  o.raw = formatLine(o); // Ensure raw field is up-to-date after parsing
   return o;
 }
 function formatLine(o) {
@@ -977,56 +1047,48 @@ function completeAndMaybeRecur(task) {
   task.completedDate = todayDate;
   task.kv['doneat'] = nowFull;
 
-  const rec = task.kv['rec']; // e.g., '1d', '1w', '1m', '1y'
-  if (!rec) return null; // No recurrence specified
+  const rec = task.kv['rec'];
+  if (!rec) return null;
 
-  // Deep copy the task to create the next recurring instance
   const next = JSON.parse(JSON.stringify(task));
 
-  // Parse original dates from the *current* task for iteration
   let currentStart = parseDateMaybe(task.kv['start']);
   let currentEnd   = parseDateMaybe(task.kv['end']);
   let currentDue   = parseDateMaybe(task.kv['due']);
   let currentT     = parseDateMaybe(task.kv['t']);
 
-  const now = new Date(); // Current time for comparison
-  const todayStartOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at 00:00:00
+  const now = new Date();
+  const todayStartOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Calculate the next recurrence by simply adding the interval.
-  // The "catch-up" logic is now handled by the caller (e.g., in 'clear expired').
   let nextStart = currentStart ? addInterval(currentStart, rec) : null;
   let nextEnd   = currentEnd   ? addInterval(currentEnd,   rec) : null;
   let nextDue   = currentDue   ? addInterval(currentDue,   rec) : null;
   let nextT     = currentT     ? addInterval(currentT,     rec) : null;
 
-  // Check 'until' date for the *advanced* next task
   const until = parseDateMaybe(task.kv['until']);
-  const anchorNext = nextStart || nextDue || nextT; // Use the advanced dates
+  const anchorNext = nextStart || nextDue || nextT;
   if (until && anchorNext && anchorNext > until) {
-    return null; // The next recurrence is beyond the 'until' date
+    return null;
   }
-  // Decrement 'count' if present
+  
   let nextCount = task.kv['count'];
   if (nextCount) {
     const n = Math.max(0, parseInt(nextCount, 10) - 1);
-    if (n <= 0) return null; // Count reached zero, no more recurrences
+    if (n <= 0) return null;
     nextCount = String(n);
   }
 
-  // Reset properties for the new task
   next.done = false;
   next.completedDate = null;
   delete next.kv['doneat'];
-  next.createdDate = todayDate; // New task's creation date is today
+  next.createdDate = todayDate;
 
-  // Update kv properties with the advanced dates
   if (nextStart) next.kv['start'] = fmtDate(nextStart, true, false); else delete next.kv['start'];
   if (nextEnd) next.kv['end'] = fmtDate(nextEnd, true, false); else delete next.kv['end'];
   if (nextDue) next.kv['due'] = fmtDate(nextDue, true, false); else delete next.kv['due'];
   if (nextT) next.kv['t'] = fmtDate(nextT, true, false); else delete next.kv['t'];
   if (nextCount) next.kv['count'] = nextCount; else delete next.kv['count'];
 
-  // Re-format the raw line for the new task
   next.raw = formatLine(next);
   return next;
 }
@@ -1058,10 +1120,9 @@ function sortTasks(arr, spec="priority,due,start,text") {
         if (sa && !sb) return -1;
         if (!sa && sb) return 1;
       } else if (k === 'countdown') {
-        // 按倒计时排序：越紧急的越靠前
         const now = new Date();
         const getUrgency = (t) => {
-          if (t.done) return 999999; // 已完成的排在最后
+          if (t.done) return 999999;
           const due = parseDateMaybe(t.kv['due']);
           const end = parseDateMaybe(t.kv['end']);
           const start = parseDateMaybe(t.kv['start']);
@@ -1069,13 +1130,13 @@ function sortTasks(arr, spec="priority,due,start,text") {
           if (due) return due.getTime() - now.getTime();
           if (end) return end.getTime() - now.getTime();
           if (start && start > now) return start.getTime() - now.getTime();
-          return 999999; // 无时间限制的排在最后
+          return 999999;
         };
         const ua = getUrgency(a), ub = getUrgency(b);
         if (ua !== ub) return ua - ub;
       } else if (k === 'created') {
         const ca = parseDateMaybe(a.createdDate), cb = parseDateMaybe(b.createdDate);
-        if (ca && cb && ca.getTime() !== cb.getTime()) return cb - ca; // 新创建的在前
+        if (ca && cb && ca.getTime() !== cb.getTime()) return cb - ca;
         if (ca && !cb) return -1;
         if (!ca && cb) return 1;
       } else if (k === 'text') {
@@ -1099,12 +1160,12 @@ function groupTasks(tasks, groupBy) {
     switch (groupBy) {
       case 'project':
         if (task.projects.length > 0) {
-          groupKey = task.projects[0]; // 使用第一个项目
+          groupKey = task.projects[0];
         }
         break;
       case 'context':
         if (task.contexts.length > 0) {
-          groupKey = task.contexts[0]; // 使用第一个上下文
+          groupKey = task.contexts[0];
         }
         break;
       case 'priority':
@@ -1140,10 +1201,8 @@ function groupTasks(tasks, groupBy) {
     groups[groupKey].push(task);
   }
   
-  // 转换为数组并排序
   const result = Object.entries(groups).map(([name, tasks]) => ({ name, tasks }));
   
-  // 对分组进行排序
   result.sort((a, b) => {
     if (groupBy === 'priority') {
       const getPriorityOrder = (name) => {
@@ -1183,13 +1242,17 @@ function describeTaskTime(t, now=new Date()){
 /* ========= 视图基础 ========= */
 function badge(text, cls=''){ const s=document.createElement('span'); s.className='badge'+(cls? ' '+cls:''); s.textContent=text; return s; }
 
-function setTasks(arr, {syncRaw=true, fromSync=false}={}) {
+// Centralized function to update tasks, save, and re-render
+function setTasks(arr, {updateRawEditor=true, shouldSave=true}={}) {
   tasks = arr;
-  if (syncRaw) {
-    const rawEl = document.getElementById('raw');
-    if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
+  if (shouldSave) {
+    save(tasks.map(formatLine));
   }
-  render();
+  // Only update raw editor if it's currently open
+  if (updateRawEditor && dom.editorModal.classList.contains('open') && dom.raw) {
+    dom.raw.value = tasks.map(formatLine).join('\n');
+  }
+  render(); // Always re-render UI after task changes
 }
 
 function inlineEditTask(t, row) {
@@ -1200,7 +1263,7 @@ function inlineEditTask(t, row) {
     const p = parseLine(input.value);
     if (!p) return;
     const idx = tasks.indexOf(t);
-    const arr = tasks.slice(); arr[idx]=p; setTasks(arr,{syncRaw:true});
+    const arr = tasks.slice(); arr[idx]=p; setTasks(arr); // Use setTasks
     showToast('已更新任务');
   };
   input.addEventListener('keydown', (e)=> {
@@ -1219,15 +1282,10 @@ function render() {
   const groupBy = dom.groupBy ? dom.groupBy.value : 'none';
   const searchVal = dom.search.value.trim();
 
-  // 排序并持久化顺序到文本
+  // Sort tasks (tasks array is directly modified by sortTasks)
   tasks = sortTasks(tasks, sortSpec);
-  save(tasks.map(formatLine)); // 保存到 localStorage
-  // 自动同步到文本编辑器 (移除所有旧的判断)
-  if (dom.raw) { 
-    if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n');
-  }
 
-  // 检查并显示/隐藏快速清理按钮
+  // Check and display/hide quick cleanup button
   const now = new Date();
   const today = new Date(now.toDateString());
   const hasExpired = tasks.some(t => {
@@ -1237,126 +1295,19 @@ function render() {
     return (due && due < today) || (end && end < now);
   });
   dom.quickCleanupBtn.style.display = hasExpired ? 'flex' : 'none';
+  dom.quickCleanupBtn.textContent = hasExpired ? '🧹' : ''; // Add text for clarity
 
+  // Filter tasks based on search and status
+  let view = filterTasks(tasks, searchVal, status);
 
-  // 基于搜索构建视图（智能搜索）
-  let view = tasks.slice();
-  if (searchVal) {
-    const terms = searchVal.split(/\s+/).map(s=>s.toLowerCase().trim()).filter(s=>s);
-    view = view.filter(t => {
-      const searchFields = [
-        t.text || '',
-        ...t.projects,
-        ...t.contexts,
-        t.priority ? `(${t.priority})` : '',
-        Object.entries(t.kv).map(([k,v]) => `${k}:${v}`).join(' ')
-      ].join(' ').toLowerCase();
-      
-      return terms.every(term => {
-        // 支持特殊搜索语法
-        if (term.startsWith('+')) return t.projects.some(p => p.toLowerCase().includes(term));
-        if (term.startsWith('@')) return t.contexts.some(c => c.toLowerCase().includes(term));
-        if (term.startsWith('pri:') || term.startsWith('priority:')) {
-          const pri = term.split(':')[1];
-          return t.priority && t.priority.toLowerCase() === pri;
-        }
-        if (term.includes(':')) {
-          const [key, val] = term.split(':', 2);
-          return t.kv[key] && t.kv[key].toLowerCase().includes(val);
-        }
-        // 普通文本搜索
-        return searchFields.includes(term);
-      });
-    });
-  }
-
-  // 应用状态过滤
-  if (status === 'open') {
-    view = view.filter(t => !t.done);
-  } else if (status === 'done') {
-    view = view.filter(t => t.done);
-  } else if (status === 'ongoing') {
-    // 正在进行：已开始但未结束，或无开始时间但有截止时间且未过期，或无任何时间限制的未完成任务
-    const now = new Date();
-    const today = new Date(now.toDateString());
-    view = view.filter(t => {
-      if (t.done) return false;
-      
-      const start = parseDateMaybe(t.kv['start']);
-      const end = parseDateMaybe(t.kv['end']);
-      const due = parseDateMaybe(t.kv['due']);
-      
-      // 已开始但未结束
-      if (start && now >= start) {
-        if (!end || now < end) return true;
-      }
-      
-      // 无开始时间但有截止时间且未过期
-      if (!start && (due || end)) {
-        const deadline = due || end;
-        return deadline >= (due ? today : now);
-      }
-      
-      // 无任何时间限制的未完成任务
-      if (!start && !end && !due) return true;
-      
-      return false;
-    });
-  } else if (status === 'pending') {
-    // 未开始：有开始时间且还未到开始时间
-    const now = new Date();
-    view = view.filter(t => {
-      if (t.done) return false;
-      const start = parseDateMaybe(t.kv['start']);
-      return start && now < start;
-    });
-  } else if (status === 'expired') {
-    const now = new Date();
-    const today = new Date(now.toDateString());
-    view = view.filter(t => {
-      if (t.done) return false;
-      const due = parseDateMaybe(t.kv['due']);
-      const end = parseDateMaybe(t.kv['end']);
-      return (due && due < today) || (end && end < now);
-    });
-  } else if (status === 'actionable') {
-    // 行动中：所有未完成的任务，包括“正在进行”和“已过期”
-    const now = new Date();
-    const today = new Date(now.toDateString());
-    view = view.filter(t => {
-      if (t.done) return false;
-      
-      // 检查是否是“正在进行”
-      const start = parseDateMaybe(t.kv['start']);
-      const end = parseDateMaybe(t.kv['end']);
-      const due = parseDateMaybe(t.kv['due']);
-      let isOngoing = false;
-      if (start && now >= start) {
-        if (!end || now < end) isOngoing = true;
-      }
-      if (!start && (due || end)) {
-        const deadline = due || end;
-        if (deadline >= (due ? today : now)) isOngoing = true;
-      }
-      if (!start && !end && !due) isOngoing = true;
-      if (isOngoing) return true;
-
-      // 检查是否是“已过期”
-      if ((due && due < today) || (end && end < now)) return true; // 'due' and 'end' are already declared above
-      
-      return false;
-    });
-  }
-
-  // 分组处理
+  // Group filtered tasks
   const groups = groupTasks(view, groupBy);
 
-  // 渲染
-  list.innerHTML = ''; // 清空现有列表
-  const fragment = document.createDocumentFragment(); // 创建文档片段
+  // Render UI
+  list.innerHTML = '';
+  const fragment = document.createDocumentFragment();
   
   for (const group of groups) {
-    // 如果有分组，添加分组标题
     if (groupBy !== 'none') {
       const groupContainer = document.createElement('div');
       groupContainer.className = 'group-container';
@@ -1373,20 +1324,15 @@ function render() {
       groupContainer.appendChild(groupHeader);
       groupContainer.appendChild(groupTasks);
       
-      // 将分组容器添加到文档片段
-      fragment.appendChild(groupContainer);
-      
-      // 渲染该分组的任务
       renderTasks(group.tasks, groupTasks);
+      fragment.appendChild(groupContainer);
     } else {
-      // 无分组，直接渲染所有任务
       renderTasks(group.tasks, fragment);
     }
   }
-  list.innerHTML = '';
   list.appendChild(fragment);
 
-  // 检查并显示空状态
+  // Show empty state if no tasks
   if (list.children.length === 0) {
     const emptyState = document.createElement('div');
     emptyState.className = 'empty-state';
@@ -1395,6 +1341,94 @@ function render() {
     emptyState.append(emptyTitle, '此视图下没有任务');
     list.appendChild(emptyState);
   }
+}
+
+// Helper to filter tasks based on search and status
+function filterTasks(tasksToFilter, searchVal, status) {
+  let filtered = tasksToFilter.slice();
+
+  if (searchVal) {
+    const terms = searchVal.split(/\s+/).map(s=>s.toLowerCase().trim()).filter(s=>s);
+    filtered = filtered.filter(t => {
+      const searchFields = [
+        t.text || '',
+        ...t.projects,
+        ...t.contexts,
+        t.priority ? `(${t.priority})` : '',
+        Object.entries(t.kv).map(([k,v]) => `${k}:${v}`).join(' ')
+      ].join(' ').toLowerCase();
+      
+      return terms.every(term => {
+        if (term.startsWith('+')) return t.projects.some(p => p.toLowerCase().includes(term));
+        if (term.startsWith('@')) return t.contexts.some(c => c.toLowerCase().includes(term));
+        if (term.startsWith('pri:') || term.startsWith('priority:')) {
+          const pri = term.split(':')[1];
+          return t.priority && t.priority.toLowerCase() === pri;
+        }
+        if (term.includes(':')) {
+          const [key, val] = term.split(':', 2);
+          return t.kv[key] && String(t.kv[key]).toLowerCase().includes(val); // Ensure kv[key] is string
+        }
+        return searchFields.includes(term);
+      });
+    });
+  }
+
+  const now = new Date();
+  const today = new Date(now.toDateString());
+
+  if (status === 'open') {
+    filtered = filtered.filter(t => !t.done);
+  } else if (status === 'done') {
+    filtered = filtered.filter(t => t.done);
+  } else if (status === 'ongoing') {
+    filtered = filtered.filter(t => {
+      if (t.done) return false;
+      const start = parseDateMaybe(t.kv['start']);
+      const end = parseDateMaybe(t.kv['end']);
+      const due = parseDateMaybe(t.kv['due']);
+      if (start && now >= start && (!end || now < end)) return true;
+      if (!start && (due || end)) {
+        const deadline = due || end;
+        return deadline >= (due ? today : now);
+      }
+      if (!start && !end && !due) return true;
+      return false;
+    });
+  } else if (status === 'pending') {
+    filtered = filtered.filter(t => {
+      if (t.done) return false;
+      const start = parseDateMaybe(t.kv['start']);
+      return start && now < start;
+    });
+  } else if (status === 'expired') {
+    filtered = filtered.filter(t => {
+      if (t.done) return false;
+      const due = parseDateMaybe(t.kv['due']);
+      const end = parseDateMaybe(t.kv['end']);
+      return (due && due < today) || (end && end < now);
+    });
+  } else if (status === 'actionable') {
+    filtered = filtered.filter(t => {
+      if (t.done) return false;
+      let isOngoing = false;
+      const start = parseDateMaybe(t.kv['start']);
+      const end = parseDateMaybe(t.kv['end']);
+      const due = parseDateMaybe(t.kv['due']);
+      
+      if (start && now >= start && (!end || now < end)) isOngoing = true;
+      if (!start && (due || end)) {
+        const deadline = due || end;
+        if (deadline >= (due ? today : now)) isOngoing = true;
+      }
+      if (!start && !end && !due) isOngoing = true;
+      if (isOngoing) return true;
+
+      if ((due && due < today) || (end && end < now)) return true;
+      return false;
+    });
+  }
+  return filtered;
 }
 
 /* ========= Gist 同步功能 (手动拉取/推送) ========= */
@@ -1420,6 +1454,8 @@ async function pullFromGist() {
     return;
   }
 
+  dom.pullFromGistBtn.disabled = true;
+  dom.pushToGistBtn.disabled = true;
   dom.syncStatus.textContent = '正在拉取...';
   showToast('正在从 Gist 拉取...');
 
@@ -1446,7 +1482,7 @@ async function pullFromGist() {
     const remoteLines = remoteContent.split('\n').map(s => s.trim()).filter(Boolean);
     const pulledTasks = remoteLines.map(parseLine).filter(Boolean);
 
-    setTasks(pulledTasks, { syncRaw: true, fromSync: true });
+    setTasks(pulledTasks, { updateRawEditor: true, shouldSave: true });
 
     dom.syncStatus.textContent = `上次同步: ${new Date().toLocaleString()}`;
     showToast('从 Gist 拉取成功！');
@@ -1455,6 +1491,9 @@ async function pullFromGist() {
     console.error('Gist 拉取错误:', error);
     dom.syncStatus.textContent = `拉取失败: ${error.message}`;
     showToast(`拉取失败: ${error.message}`, 3000);
+  } finally {
+    dom.pullFromGistBtn.disabled = false;
+    dom.pushToGistBtn.disabled = false;
   }
 }
 
@@ -1473,6 +1512,8 @@ async function pushToGist() {
     return;
   }
 
+  dom.pullFromGistBtn.disabled = true;
+  dom.pushToGistBtn.disabled = true;
   dom.syncStatus.textContent = '正在推送...';
   showToast('正在推送到 Gist...');
 
@@ -1508,6 +1549,9 @@ async function pushToGist() {
     console.error('Gist 推送错误:', error);
     dom.syncStatus.textContent = `推送失败: ${error.message}`;
     showToast(`推送失败: ${error.message}`, 3000);
+  } finally {
+    dom.pullFromGistBtn.disabled = false;
+    dom.pushToGistBtn.disabled = false;
   }
 }
 
@@ -1522,11 +1566,11 @@ function renderTasks(tasksToRender, container) {
         t.done = true; t.raw = formatLine(t);
         const arr = tasks.slice();
         if (next) arr.splice(tasks.indexOf(t)+1, 0, next);
-        setTasks(arr, {syncRaw:true});
+        setTasks(arr);
         showToast('已完成');
       } else {
         t.done = false; t.completedDate = null; delete t.kv['doneat']; t.raw = formatLine(t);
-        setTasks(tasks, {syncRaw:true});
+        setTasks(tasks);
         showToast('已恢复为未完成');
       }
     });
@@ -1541,7 +1585,6 @@ function renderTasks(tasksToRender, container) {
     const meta = document.createElement('div'); meta.className='meta';
     if (t.priority) meta.append(badge(`P:${t.priority}`,'pri'));
 
-    // 项目/上下文可点击搜索
     for (const p of t.projects) {
       const b = badge(p); b.classList.add('link', 'proj');
       b.addEventListener('click', ()=> { 
@@ -1574,12 +1617,10 @@ function renderTasks(tasksToRender, container) {
     if (count) meta.append(badge(`count:${count}`));
     if (until) meta.append(badge(`until:${until}`));
 
-    // 其他 kv，检查URL
     const known = new Set(['due','t','start','end','rec','count','until','doneat','id']);
     for (const k of Object.keys(t.kv).sort()) {
       if (!known.has(k)) {
         const value = t.kv[k];
-        // 检查是否是URL
         if (value.startsWith('http://') || value.startsWith('https://')) {
           const urlBadge = badge(`${k}:${value}`, 'url');
           urlBadge.addEventListener('click', () => {
@@ -1587,27 +1628,27 @@ function renderTasks(tasksToRender, container) {
           });
           meta.append(urlBadge);
         } else {
-          meta.append(badge(`${k}:${value}`));
+          const customBadge = badge(`${k}:${value}`);
+          // For custom key-value pairs, if they contain potentially unsafe HTML,
+          // `textContent` provides basic XSS protection.
+          meta.append(customBadge);
         }
       }
     }
 
-    // 时间信息：未完成且具备 start/end/due 时显示倒计时；完成则显示完成时间（含秒）
     const hasTiming = !!(start || end || due);
     if (t.done) {
       const timeBadge = document.createElement('span'); timeBadge.className='badge time';
       const doneat = t.kv['doneat'] || (t.completedDate? fmtDate(parseDateMaybe(t.completedDate), true, true) : '');
       timeBadge.textContent = doneat ? `完成于 ${doneat.replace('T', ' ')}` : '已完成';
       meta.append(timeBadge);
-      t._descEl = timeBadge; // 允许计时器在完成态保持显示完成时间
+      t._descEl = timeBadge;
     } else if (hasTiming) {
       const timeBadge = document.createElement('span'); timeBadge.className='badge time';
       const timeDesc = describeTaskTime(t);
       timeBadge.textContent = timeDesc;
       
-      // 检查是否过期，添加红色样式
       const now = new Date();
-      const today = new Date(now.toDateString());
       const dueDate = parseDateMaybe(due);
       const endDate = parseDateMaybe(end);
       const isExpired = (dueDate && dueDate < today) || (endDate && endDate < now);
@@ -1619,13 +1660,11 @@ function renderTasks(tasksToRender, container) {
       meta.append(timeBadge);
       t._descEl = timeBadge;
     } else {
-      // 无时间相关不显示
       t._descEl = null;
     }
 
     body.append(titleEl, meta);
 
-    // 右侧动作：原文（展开在行下）/ 删除（自定义确认）
     const btnRaw = document.createElement('button'); btnRaw.className='btn'; btnRaw.textContent='原文';
     const btnDel = document.createElement('button'); btnDel.className='btn'; btnDel.textContent='删除';
 
@@ -1648,7 +1687,7 @@ function renderTasks(tasksToRender, container) {
       const info = document.createElement('span'); info.textContent='确认删除此任务？';
       const yes = document.createElement('button'); yes.className='btn destructive'; yes.textContent='删除';
       const no  = document.createElement('button'); no.className='btn'; no.textContent='取消';
-      yes.addEventListener('click', ()=> { setTasks(tasks.filter(x=>x!==t), {syncRaw:true}); showToast('已删除'); });
+      yes.addEventListener('click', ()=> { setTasks(tasks.filter(x=>x!==t)); showToast('已删除'); });
       no.addEventListener('click', ()=> { confirmBar.remove(); confirmBar=null; });
       confirmBar.append(info, yes, no);
       body.append(confirmBar);
@@ -1664,9 +1703,10 @@ function renderTasks(tasksToRender, container) {
 /* ========= 导入/导出/同步 ========= */
 function applyRawText(text) {
   const lines = text.split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>0);
-  const parsed = lines.map(parseLine).filter(Boolean); // 过滤掉解析失败的行
-  setTasks(parsed, {syncRaw:false}); // 不自动同步到raw文本框，因为raw文本框内容已经是最新的
-  const rawEl = document.getElementById('raw'); if (rawEl) rawEl.value = tasks.map(formatLine).join('\n');
+  const parsed = lines.map(parseLine).filter(Boolean);
+  // When applying raw text, update tasks, but don't re-read from the raw textarea (it's the source)
+  setTasks(parsed, {updateRawEditor:false, shouldSave:true});
+  if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n'); // Ensure the raw editor reflects applied text
   showToast('已应用文本');
 }
 function exportTxt() {
@@ -1707,56 +1747,36 @@ function updateFieldStylePreviews() {
 
 // 更新输入框
 function updateFieldStyleInputs() {
-  document.getElementById('projectColorPicker').value = currentFieldStyles.project.color; // 使用dom.projectColorPicker
-  document.getElementById('projectColorInput').value = currentFieldStyles.project.color; // 使用dom.projectColorInput
-  document.getElementById('projectBgPicker').value = currentFieldStyles.project.bg;
-  document.getElementById('projectBgInput').value = currentFieldStyles.project.bg;
+  dom.projectColorPicker.value = currentFieldStyles.project.color;
+  dom.projectColorInput.value = currentFieldStyles.project.color;
+  dom.projectBgPicker.value = currentFieldStyles.project.bg;
+  dom.projectBgInput.value = currentFieldStyles.project.bg;
   
-  document.getElementById('contextColorPicker').value = currentFieldStyles.context.color;
-  document.getElementById('contextColorInput').value = currentFieldStyles.context.color;
-  document.getElementById('contextBgPicker').value = currentFieldStyles.context.bg;
-  document.getElementById('contextBgInput').value = currentFieldStyles.context.bg;
+  dom.contextColorPicker.value = currentFieldStyles.context.color;
+  dom.contextColorInput.value = currentFieldStyles.context.color;
+  dom.contextBgPicker.value = currentFieldStyles.context.bg;
+  dom.contextBgInput.value = currentFieldStyles.context.bg;
   
-  document.getElementById('priorityColorPicker').value = currentFieldStyles.priority.color;
-  document.getElementById('priorityColorInput').value = currentFieldStyles.priority.color;
-  document.getElementById('priorityBgPicker').value = currentFieldStyles.priority.bg;
-  document.getElementById('priorityBgInput').value = currentFieldStyles.priority.bg;
+  dom.priorityColorPicker.value = currentFieldStyles.priority.color;
+  dom.priorityColorInput.value = currentFieldStyles.priority.color;
+  dom.priorityBgPicker.value = currentFieldStyles.priority.bg;
+  dom.priorityBgInput.value = currentFieldStyles.priority.bg;
   
-  document.getElementById('dateColorPicker').value = currentFieldStyles.date.color;
-  document.getElementById('dateColorInput').value = currentFieldStyles.date.color;
-  document.getElementById('dateBgPicker').value = currentFieldStyles.date.bg;
-  document.getElementById('dateBgInput').value = currentFieldStyles.date.bg;
+  dom.dateColorPicker.value = currentFieldStyles.date.color;
+  dom.dateColorInput.value = currentFieldStyles.date.color;
+  dom.dateBgPicker.value = currentFieldStyles.date.bg;
+  dom.dateBgInput.value = currentFieldStyles.date.bg;
   
-  document.getElementById('urlColorPicker').value = currentFieldStyles.url.color;
-  document.getElementById('urlColorInput').value = currentFieldStyles.url.color;
-  document.getElementById('urlBgPicker').value = currentFieldStyles.url.bg;
-  document.getElementById('urlBgInput').value = currentFieldStyles.url.bg;
+  dom.urlColorPicker.value = currentFieldStyles.url.color;
+  dom.urlColorInput.value = currentFieldStyles.url.color;
+  dom.urlBgPicker.value = currentFieldStyles.url.bg;
+  dom.urlBgInput.value = currentFieldStyles.url.bg;
 }
 
 // 实时预览
 function previewFieldStyles(styles) {
   applyFieldStyles(styles);
   updateFieldStylePreviews();
-  // 立即更新预览标签的样式 (使用缓存的dom对象)
-  dom.projectPreview.style.color = styles.project.color;
-  dom.projectPreview.style.backgroundColor = styles.project.bg;
-  dom.projectPreview.style.borderColor = styles.project.border;
-  
-  dom.contextPreview.style.color = styles.context.color;
-  dom.contextPreview.style.backgroundColor = styles.context.bg;
-  dom.contextPreview.style.borderColor = styles.context.border;
-  
-  dom.priorityPreview.style.color = styles.priority.color;
-  dom.priorityPreview.style.backgroundColor = styles.priority.bg;
-  dom.priorityPreview.style.borderColor = styles.priority.border;
-  
-  dom.datePreview.style.color = styles.date.color;
-  dom.datePreview.style.backgroundColor = styles.date.bg;
-  dom.datePreview.style.borderColor = styles.date.border;
-  
-  dom.urlPreview.style.color = styles.url.color;
-  dom.urlPreview.style.backgroundColor = styles.url.bg;
-  dom.urlPreview.style.borderColor = styles.url.border;
 }
 
 // 打开字段样式配置
@@ -1777,16 +1797,15 @@ dom.closeFieldStyle.addEventListener('click', () => {
 
 // 设置颜色输入事件监听器
 function setupColorInputs(fieldType) {
-  const colorPicker = document.getElementById(`${fieldType}ColorPicker`);
-  const colorInput = document.getElementById(`${fieldType}ColorInput`);
-  const bgPicker = document.getElementById(`${fieldType}BgPicker`);
-  const bgInput = document.getElementById(`${fieldType}BgInput`);
+  const colorPicker = dom[`${fieldType}ColorPicker`];
+  const colorInput = dom[`${fieldType}ColorInput`];
+  const bgPicker = dom[`${fieldType}BgPicker`];
+  const bgInput = dom[`${fieldType}BgInput`];
   
   colorPicker.addEventListener('input', (e) => {
     const newStyles = JSON.parse(JSON.stringify(currentFieldStyles));
     newStyles[fieldType].color = e.target.value;
     colorInput.value = e.target.value;
-    // 立即更新当前样式以便预览
     currentFieldStyles = newStyles;
     previewFieldStyles(newStyles);
   });
@@ -1797,7 +1816,6 @@ function setupColorInputs(fieldType) {
       const newStyles = JSON.parse(JSON.stringify(currentFieldStyles));
       newStyles[fieldType].color = color;
       colorPicker.value = color;
-      // 立即更新当前样式以便预览
       currentFieldStyles = newStyles;
       previewFieldStyles(newStyles);
     }
@@ -1806,7 +1824,6 @@ function setupColorInputs(fieldType) {
   bgPicker.addEventListener('input', (e) => {
     const newStyles = JSON.parse(JSON.stringify(currentFieldStyles));
     newStyles[fieldType].bg = e.target.value;
-    // 自动计算边框颜色（稍微深一点）
     const rgb = hexToRgb(e.target.value);
     if (rgb) {
       const darkerRgb = {
@@ -1817,7 +1834,6 @@ function setupColorInputs(fieldType) {
       newStyles[fieldType].border = rgbToHex(darkerRgb.r, darkerRgb.g, darkerRgb.b);
     }
     bgInput.value = e.target.value;
-    // 立即更新当前样式以便预览
     currentFieldStyles = newStyles;
     previewFieldStyles(newStyles);
   });
@@ -1827,7 +1843,6 @@ function setupColorInputs(fieldType) {
     if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
       const newStyles = JSON.parse(JSON.stringify(currentFieldStyles));
       newStyles[fieldType].bg = color;
-      // 自动计算边框颜色
       const rgb = hexToRgb(color);
       if (rgb) {
         const darkerRgb = {
@@ -1838,7 +1853,6 @@ function setupColorInputs(fieldType) {
         newStyles[fieldType].border = rgbToHex(darkerRgb.r, darkerRgb.g, darkerRgb.b);
       }
       bgPicker.value = color;
-      // 立即更新当前样式以便预览
       currentFieldStyles = newStyles;
       previewFieldStyles(newStyles);
     }
@@ -1868,7 +1882,7 @@ dom.applyFieldStyles.addEventListener('click', () => {
     project: {
       color: dom.projectColorInput.value || dom.projectColorPicker.value,
       bg: dom.projectBgInput.value || dom.projectBgPicker.value,
-      border: currentFieldStyles.project.border
+      border: currentFieldStyles.project.border // Use the currently calculated border
     },
     context: {
       color: dom.contextColorInput.value || dom.contextColorPicker.value,
@@ -1894,7 +1908,7 @@ dom.applyFieldStyles.addEventListener('click', () => {
   
   currentFieldStyles = newStyles;
   saveFieldStyles(currentFieldStyles);
-  applyFieldStyles(currentFieldStyles); // 重新应用样式到CSS变量
+  applyFieldStyles(currentFieldStyles);
   fieldStyleModal.classList.remove('open');
   showToast('字段样式已应用');
 });
@@ -1904,15 +1918,14 @@ dom.resetFieldStyles.addEventListener('click', () => {
   const defaultStyles = getDefaultFieldStyles();
   currentFieldStyles = defaultStyles;
   saveFieldStyles(currentFieldStyles);
-  applyFieldStyles(currentFieldStyles); // 重新应用样式到CSS变量
+  applyFieldStyles(currentFieldStyles);
   updateFieldStyleInputs();
   updateFieldStylePreviews();
   showToast('字段样式已重置');
 });
 
 // 字段样式配置窗口拖动功能
-const fieldStyleModalDragHandle = document.getElementById('fieldStyleModalDragHandle');
-// 使用缓存的dom.fieldStyleModalDragHandle
+const fieldStyleModalDragHandle = dom.fieldStyleModalDragHandle;
 (function makeFieldStyleModalDraggable(fieldStyleModal, fieldStyleModalDragHandle){
   let isDown=false, startX=0, startY=0, startLeft=0, startTop=0;
   fieldStyleModalDragHandle.addEventListener('mousedown', (e)=>{
@@ -1929,7 +1942,7 @@ const fieldStyleModalDragHandle = document.getElementById('fieldStyleModalDragHa
     fieldStyleModal.style.left = (startLeft + dx) + 'px';
     fieldStyleModal.style.top  = (startTop  + dy) + 'px';
     fieldStyleModal.style.transform = 'translate(0,0)';
-  }, {passive: true}); // passive listener for better scroll performance
+  }, {passive: true});
   window.addEventListener('mouseup', ()=> isDown=false);
 })(dom.fieldStyleModal, dom.fieldStyleModalDragHandle);
 
@@ -1948,7 +1961,6 @@ dom.search.addEventListener('focus', ()=> {
   if (!dom.search.value.trim()) dom.searchHints.classList.add('show');
 });
 dom.search.addEventListener('blur', ()=> {
-  // 使用setTimeout延迟隐藏，以便点击提示项
   setTimeout(()=> dom.searchHints.classList.remove('show'), 150);
 });
 
@@ -1959,22 +1971,17 @@ dom.clearSearch.addEventListener('click', ()=> {
   render();
 });
 
-// 使用缓存的dom.status
 dom.status.addEventListener('input', render);
 
-// 标题点击刷新
 dom.appTitle.addEventListener('click', ()=> {
   location.reload();
 });
 
-// 设置面板
-// 使用缓存的dom.drawer, dom.settingsBtn, dom.closeDrawer, dom.sort, dom.groupBy
 dom.settingsBtn.addEventListener('click', ()=> dom.drawer.classList.add('open'));
 dom.closeDrawer.addEventListener('click', ()=> dom.drawer.classList.remove('open'));
 dom.sort.addEventListener('input', render);
 dom.groupBy.addEventListener('input', render);
 
-// Gist 同步事件 (手动)
 dom.saveGistSettings.addEventListener('click', () => {
   localStorage.setItem(GIST_ID_KEY, dom.gistId.value.trim());
   localStorage.setItem(GIST_PAT_KEY, dom.githubPat.value.trim());
@@ -1985,8 +1992,6 @@ dom.saveGistSettings.addEventListener('click', () => {
 dom.pullFromGistBtn.addEventListener('click', pullFromGist);
 dom.pushToGistBtn.addEventListener('click', pushToGist);
 
-
-// 创建一个可复用的清理函数
 function performExpiredCleanup() {
   const now = new Date();
   const today = new Date(now.toDateString());
@@ -1997,7 +2002,10 @@ function performExpiredCleanup() {
     return (due && due < today) || (end && end < now);
   });
 
-  if (expiredTasks.length === 0) return;
+  if (expiredTasks.length === 0) {
+    showToast('没有已过期的任务');
+    return;
+  }
 
   const expiredRecurring = expiredTasks.filter(t => t.kv['rec']);
   const expiredNormal = expiredTasks.filter(t => !t.kv['rec']);
@@ -2019,15 +2027,15 @@ function performExpiredCleanup() {
     }
     if (nextCandidate) {
       const idx = newTasks.indexOf(expiredTask);
-      newTasks[idx] = nextCandidate;
+      if (idx !== -1) newTasks[idx] = nextCandidate; // Replace old with new
       generatedCount++;
     } else {
-      newTasks = newTasks.filter(t => t !== expiredTask);
+      newTasks = newTasks.filter(t => t !== expiredTask); // If no next, remove expired
     }
   }
 
-  newTasks = newTasks.filter(t => !expiredNormal.includes(t));
-  setTasks(newTasks, { syncRaw: true });
+  newTasks = newTasks.filter(t => !expiredNormal.includes(t)); // Remove normal expired tasks
+  setTasks(newTasks);
 
   let toastMsg = `已清理 ${expiredTasks.length} 个过期任务`;
   if (generatedCount > 0) {
@@ -2036,12 +2044,9 @@ function performExpiredCleanup() {
   showToast(toastMsg);
 }
 
-// 快速清理按钮 (直接执行清理逻辑，而不是模拟点击)
 dom.quickCleanupBtn.addEventListener('click', () => {
-  // 将确认框附加到主列表的顶部，确保可见
   const host = dom.list; 
 
-  // 计算过期任务
   const now = new Date();
   const today = new Date(now.toDateString());
   const expiredTasks = tasks.filter(t => {
@@ -2052,20 +2057,17 @@ dom.quickCleanupBtn.addEventListener('click', () => {
   });
 
   if (expiredTasks.length === 0) {
-    // 理论上按钮不显示时不会触发，但作为安全措施
     showToast('没有已过期的任务');
     return;
   }
 
-  // 移除可能存在的旧确认框
   const oldConfirm = host.querySelector('.confirm-bar');
   if (oldConfirm) oldConfirm.remove();
 
-  // 创建新的确认框
   const expiredRecurring = expiredTasks.filter(t => t.kv['rec']);
   const bar = document.createElement('div');
   bar.className = 'confirm-bar';
-  bar.style.margin = '0 0 12px 0'; // 调整边距
+  bar.style.margin = '0 0 12px 0';
   let message = `清理 ${expiredTasks.length} 个已过期任务？`;
   if (expiredRecurring.length > 0) {
     message += ` (包括 ${expiredRecurring.length} 个周期任务，将生成新周期)`;
@@ -2080,16 +2082,15 @@ dom.quickCleanupBtn.addEventListener('click', () => {
   no.textContent = '取消';
 
   yes.onclick = () => {
-    bar.remove(); // 先移除确认框
-    performExpiredCleanup(); // 然后执行清理
+    bar.remove();
+    performExpiredCleanup();
   };
   no.onclick = () => bar.remove();
 
   bar.append(yes, no);
-  host.prepend(bar); // 插入到列表顶部
+  host.prepend(bar);
 });
 
-// 清理已完成（修复：始终基于当前 tasks 过滤 done=true）
 dom.clearDoneBtn.addEventListener('click', ()=> {
   const host = dom.settingsConfirmHost;
   host.innerHTML = '';
@@ -2097,23 +2098,20 @@ dom.clearDoneBtn.addEventListener('click', ()=> {
   bar.innerHTML = '<span>清理所有已完成任务？</span>';
   const yes = document.createElement('button'); yes.className='btn destructive'; yes.textContent='清理';
   const no = document.createElement('button'); no.className='btn'; no.textContent='取消';
-  yes.onclick = ()=> { setTasks(tasks.filter(x=>!x.done), {syncRaw:true}); bar.remove(); showToast('已清理'); };
+  yes.onclick = ()=> { setTasks(tasks.filter(x=>!x.done)); bar.remove(); showToast('已清理'); };
   no.onclick  = ()=> bar.remove();
   bar.append(yes, no);
   host.append(bar);
 });
 
-// 清理已过期任务
 dom.clearExpiredBtn.addEventListener('click', ()=> {
   const host = dom.settingsConfirmHost;
   host.innerHTML = '';
   
-  // 计算过期任务数量
   const now = new Date();
-  const today = new Date(now.toDateString()); // 今天0点
+  const today = new Date(now.toDateString());
   const expiredTasks = tasks.filter(t => {
-    if (t.done) return false; // 已完成的不算过期
-    
+    if (t.done) return false;
     const due = parseDateMaybe(t.kv['due']);
     const end = parseDateMaybe(t.kv['end']);
     return (due && due < today) || (end && end < now);
@@ -2124,7 +2122,6 @@ dom.clearExpiredBtn.addEventListener('click', ()=> {
     return;
   }
   
-  // 统计周期任务和普通任务
   const expiredRecurring = expiredTasks.filter(t => t.kv['rec']);
   const expiredNormal = expiredTasks.filter(t => !t.kv['rec']);
   
@@ -2138,22 +2135,21 @@ dom.clearExpiredBtn.addEventListener('click', ()=> {
   const yes = document.createElement('button'); yes.className='btn destructive'; yes.textContent='清理';
   const no = document.createElement('button'); no.className='btn'; no.textContent='取消';
   yes.onclick = ()=> { 
-    bar.remove(); // 先移除确认框
-    performExpiredCleanup(); // 然后执行清理
+    bar.remove();
+    performExpiredCleanup();
   };
   no.onclick = ()=> bar.remove();
   bar.append(yes, no);
   host.append(bar);
 });
 
-// 导入/导出/清空
 dom.exportBtn.addEventListener('click', exportTxt);
 dom.importInput.addEventListener('change', async (e)=> {
   const f = e.target.files[0]; if (!f) return;
   const text = await f.text();
   applyRawText(text);
-  if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n');
   showToast('已导入');
+  e.target.value = ''; // Clear file input
 });
 dom.resetBtn.addEventListener('click', ()=> {
   const host = dom.settingsConfirmHost;
@@ -2162,22 +2158,19 @@ dom.resetBtn.addEventListener('click', ()=> {
   bar.innerHTML = '<span>确认清空全部任务与文本？</span>';
   const yes = document.createElement('button'); yes.className='btn destructive'; yes.textContent='清空';
   const no = document.createElement('button'); no.className='btn'; no.textContent='取消';
-  yes.onclick = ()=> { setTasks([], {syncRaw:true}); if (dom.raw) dom.raw.value=''; bar.remove(); showToast('已清空'); };
+  yes.onclick = ()=> { setTasks([], {updateRawEditor:true, shouldSave:true}); if (dom.raw) dom.raw.value=''; bar.remove(); showToast('已清空'); };
   no.onclick  = ()=> bar.remove();
   bar.append(yes, no);
   host.append(bar);
 });
 
-/* ========= 浮动编辑器：打开/关闭/拖动 ========= */
-const modal = document.getElementById('editorModal');
-// 使用缓存的dom.editorModal, dom.modalDragHandle, dom.openEditorBtn, dom.closeEditor, dom.raw
+const modal = dom.editorModal;
+const dragHandle = dom.modalDragHandle;
 dom.openEditorBtn.addEventListener('click', ()=> {
-  dom.raw.value = tasks.map(formatLine).join('\n');
+  dom.raw.value = tasks.map(formatLine).join('\n'); // Always load current state when opening
   dom.editorModal.classList.add('open');
 });
 dom.closeEditor.addEventListener('click', ()=> dom.editorModal.classList.remove('open'));
-const dragHandle = dom.modalDragHandle; // 确保拖动句柄变量被正确赋值
-// 拖动
 (function makeDraggable(){
   let isDown=false, startX=0, startY=0, startLeft=0, startTop=0;
   dragHandle.addEventListener('mousedown', (e)=>{
@@ -2193,17 +2186,15 @@ const dragHandle = dom.modalDragHandle; // 确保拖动句柄变量被正确赋�
     const dy = e.clientY - startY;
     modal.style.left = (startLeft + dx) + 'px';
     modal.style.top  = (startTop  + dy) + 'px';
-    modal.style.transform = 'translate(0,0)'; // detach center transform after drag
-  }, {passive: true}); // passive listener for better scroll performance
+    modal.style.transform = 'translate(0,0)';
+  }, {passive: true});
   window.addEventListener('mouseup', ()=> isDown=false);
 })();
 
-/* ========= 文本编辑快捷保存 ========= */
 dom.raw.addEventListener('keydown', (e)=> {
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s') { e.preventDefault(); applyRawText(e.target.value); }
 });
 
-/* ========= 实时倒计时（UI-only） ========= */
 setInterval(()=> {
   const now = new Date();
   for (const t of tasks) {
@@ -2219,8 +2210,6 @@ setInterval(()=> {
   }
 }, 1000);
 
-/* ========= PWA 功能 ========= */
-// Service Worker 注册（使用外部文件）
 if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js')
@@ -2236,24 +2225,20 @@ if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.p
   console.log('PWA功能需要在HTTP/HTTPS协议下运行，当前为file://协议');
 }
 
-// 加载 Gist 配置
 loadGistSettings();
 
-/* ========= 初始渲染 ========= */
 if (tasks.length===0) {
   const seed = [
     '(A) 2025-09-20 Backup system +Ops @server rec:1d start:2025-09-20T05:00 end:2025-09-20T05:30 count:3',
     'Write report +Work @computer due:2025-09-30',
     'Buy milk @errands'
   ].join('\n');
-  applyRawText(seed); // 这会调用setTasks，进而调用render
-  if (dom.raw) dom.raw.value = seed; // 确保raw文本框也显示种子数据
+  applyRawText(seed); // This calls setTasks, which saves and renders.
 } else {
-  if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n');
   render();
 }
 
-})(); // <--- 优化建议：添加 IIFE 结束
+})();
 </script>
 </body>
 </html>

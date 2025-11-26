@@ -1,28 +1,21 @@
 {
   "name": "todo.txt",
-  "short_name": "todo.txt",
+  "short_name": "Todo.txt",
   "description": "功能强大的todo.txt任务管理应用，支持项目分组、智能搜索、字段样式自定义等功能",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#3b82f6",
-  "orientation": "portrait-primary",
-  "scope": "./",
   "icons": [
     {
       "src": "./todo.jpg",
       "sizes": "192x192",
-      "type": "image/jpeg",
-      "purpose": "any maskable"
+      "type": "image/jpeg"
     },
     {
       "src": "./todo.jpg",
       "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "any maskable"
+      "type": "image/jpeg"
     }
-  ],
-  "categories": ["productivity", "utilities"],
-  "lang": "zh-CN",
-  "dir": "ltr"
+  ]
 }

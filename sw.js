@@ -21,16 +21,16 @@ self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request)
       .then(function(response) {
-        // 如果缓存中有，直接返回
+        // If resource is in cache, return it
         if (response) {
           return response;
         }
         
-        // 否则从网络获取
+        // Otherwise, fetch from network
         return fetch(event.request).catch(function() {
-          // 网络失败时，对于HTML请求返回离线页面
+          // If network fails, and the request is for an HTML document, return the offline page
           if (event.request.destination === 'document') {
-            return caches.match('./dd_field_styles.html');
+            return caches.match('./index.html'); // FIX: Corrected offline page path
           }
         });
       }
@@ -45,7 +45,7 @@ self.addEventListener('activate', function(event) {
       return Promise.all(
         cacheNames.map(function(cacheName) {
           if (cacheName !== CACHE_NAME) {
-            console.log('删除旧缓存:', cacheName);
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
