@@ -470,6 +470,14 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
   color: var(--text);
 }
 
+/* New style for appTitle image */
+#appTitle img {
+  height: 48px;
+  width: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
 @media (max-width: 640px){
   .search-hints{font-size: 11px; padding: 6px;}
   .hint-item{padding: 3px 0;}
@@ -526,8 +534,8 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
 <header>
   <div class="container">
     <div class="row">
-      <div id="appTitle" title="点击刷新"> <!-- Removed inline styles -->
-        <img src="./todo.jpg" alt="todo.txt icon" style="height: 48px; width: 48px; border-radius: 8px; object-fit: cover;">
+      <div id="appTitle" title="点击刷新">
+        <img src="./todo.jpg" alt="todo.txt icon">
       </div>
       <div class="grow"></div>
       <button id="settingsBtn" class="btn settings-btn" title="设置">⚙️</button>
@@ -536,9 +544,9 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
 </header>
 
 <main>
-  <div class="main-header"> <!-- Removed inline style -->
+  <div class="main-header">
     <div class="main-controls">
-      <div class="search-wrapper"> <!-- Added class: search-wrapper -->
+      <div class="search-wrapper">
         <input id="search" class="input search-input" placeholder="🔍 搜索任务、项目、上下文..." />
         <button id="clearSearch" class="btn">❌</button>
         <div id="searchHints" class="search-hints">
@@ -551,9 +559,9 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
       </div>
     </div>
     <div class="main-controls">
-        <button id="quickCleanupBtn" class="btn settings-btn" title="清理已过期任务"></button> <!-- Removed inline style, display handled by JS -->
+        <button id="quickCleanupBtn" class="btn settings-btn" title="清理已过期任务"></button>
         <div class="control-group">
-          <label>状态:</label> <!-- Removed inline style -->
+          <label>状态:</label>
           <select id="status" class="select">
             <option value="all">所有任务</option>
             <option value="open">未完成</option>
@@ -565,7 +573,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
           </select>
         </div>
         <div class="control-group">
-          <label>分组:</label> <!-- Removed inline style -->
+          <label>分组:</label>
           <select id="groupBy" class="select">
             <option value="none">不分组</option>
             <option value="project" selected>按项目分组</option>
@@ -589,8 +597,8 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
     <div class="section">
       <div class="section-title">视图与排序</div>
       <div class="row">
-        <label>排序方式:</label> <!-- Removed inline style -->
-        <select id="sort" class="select"> <!-- Removed inline style -->
+        <label>排序方式:</label>
+        <select id="sort" class="select">
           <option value="priority,due,start,text">优先级→截止→开始→文本</option>
           <option value="due,start,priority,text">截止→开始→优先级→文本</option>
           <option value="countdown,priority,text">倒计时→优先级→文本</option>
@@ -613,20 +621,21 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
     <div class="section">
       <div class="section-title">文本编辑</div>
       <div class="row">
-        <button id="openEditorBtn" class="btn primary btn_full">打开 todo.txt 编辑器</button> <!-- Removed inline style -->
+        <button id="openEditorBtn" class="btn primary btn_full">打开 todo.txt 编辑器</button>
       </div>
     </div>
 
     <div class="section">
       <div class="section-title">字段样式</div>
       <div class="row">
-        <button id="openFieldStyleBtn" class="btn primary btn_full">自定义字段样式</button> <!-- Removed inline style -->
+        <button id="openFieldStyleBtn" class="btn primary btn_full">自定义字段样式</button>
       </div>
     </div>
 
     <div class="section">
       <div class="section-title">GitHub Gist 同步</div>
       <p class="muted" style="font-size:12px; margin: 4px 0;">将您的任务列表与一个私有的 GitHub Gist 同步。您的凭据将仅存储在本地浏览器中。</p>
+      <p class="muted" style="font-size:12px; color:#ef4444; margin: 4px 0;">**警告: 将 PAT 存储在浏览器 `localStorage` 中存在跨站脚本 (XSS) 攻击风险。请确保您的浏览器和使用的扩展程序是安全的。**</p>
       <div class="row">
         <input id="gistId" type="text" class="input" placeholder="Gist ID" autocomplete="username">
       </div>
@@ -634,7 +643,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
         <input id="githubPat" type="password" class="input" placeholder="GitHub Personal Access Token (PAT)" autocomplete="current-password">
       </div>
       <div class="row">
-        <button id="saveGistSettings" class="btn secondary btn_full">保存凭据</button> <!-- Removed inline style -->
+        <button id="saveGistSettings" class="btn secondary btn_full">保存凭据</button>
       </div>
       <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 8px;">
         <button id="pullFromGistBtn" class="btn secondary">拉取 (Pull)</button>
@@ -657,7 +666,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
     <div class="section">
       <div class="section-title">危险操作</div>
       <div class="row">
-        <button id="resetBtn" class="btn destructive btn_full">清空全部数据</button> <!-- Removed inline style -->
+        <button id="resetBtn" class="btn destructive btn_full">清空全部数据</button>
       </div>
       <div id="settingsConfirmHost"></div>
     </div>
@@ -1186,10 +1195,8 @@ function groupTasks(tasks, groupBy) {
           
           if ((due && due < today) || (end && end < now)) {
             groupKey = '已过期';
-          } else if (due || end) {
-            groupKey = '有截止时间';
           } else {
-            groupKey = '无截止时间';
+            groupKey = '待处理'; // Renamed for clarity: Was '有截止时间' or '无截止时间'
           }
         }
         break;
@@ -1212,7 +1219,7 @@ function groupTasks(tasks, groupBy) {
       };
       return getPriorityOrder(a.name) - getPriorityOrder(b.name);
     } else if (groupBy === 'status') {
-      const statusOrder = { '已过期': 0, '有截止时间': 1, '无截止时间': 2, '已完成': 3 };
+      const statusOrder = { '已过期': 0, '待处理': 1, '已完成': 2, '未分类': 3 }; // Updated order
       return (statusOrder[a.name] || 999) - (statusOrder[b.name] || 999);
     }
     return a.name.localeCompare(b.name);
@@ -1242,15 +1249,23 @@ function describeTaskTime(t, now=new Date()){
 /* ========= 视图基础 ========= */
 function badge(text, cls=''){ const s=document.createElement('span'); s.className='badge'+(cls? ' '+cls:''); s.textContent=text; return s; }
 
+/**
+ * Updates the raw text editor content with the current tasks.
+ */
+function syncRawEditorWithValue() {
+  if (dom.editorModal.classList.contains('open') && dom.raw) {
+    dom.raw.value = tasks.map(formatLine).join('\n');
+  }
+}
+
 // Centralized function to update tasks, save, and re-render
 function setTasks(arr, {updateRawEditor=true, shouldSave=true}={}) {
   tasks = arr;
   if (shouldSave) {
     save(tasks.map(formatLine));
   }
-  // Only update raw editor if it's currently open
-  if (updateRawEditor && dom.editorModal.classList.contains('open') && dom.raw) {
-    dom.raw.value = tasks.map(formatLine).join('\n');
+  if (updateRawEditor) {
+    syncRawEditorWithValue();
   }
   render(); // Always re-render UI after task changes
 }
@@ -1706,7 +1721,7 @@ function applyRawText(text) {
   const parsed = lines.map(parseLine).filter(Boolean);
   // When applying raw text, update tasks, but don't re-read from the raw textarea (it's the source)
   setTasks(parsed, {updateRawEditor:false, shouldSave:true});
-  if (dom.raw) dom.raw.value = tasks.map(formatLine).join('\n'); // Ensure the raw editor reflects applied text
+  syncRawEditorWithValue(); // Ensure the raw editor reflects applied text
   showToast('已应用文本');
 }
 function exportTxt() {
@@ -2072,7 +2087,7 @@ dom.quickCleanupBtn.addEventListener('click', () => {
   if (expiredRecurring.length > 0) {
     message += ` (包括 ${expiredRecurring.length} 个周期任务，将生成新周期)`;
   }
-  bar.innerHTML = `<span>${message}</span>`;
+  bar.innerHTML = `<span>${message}`;
 
   const yes = document.createElement('button');
   yes.className = 'btn destructive';
@@ -2158,7 +2173,7 @@ dom.resetBtn.addEventListener('click', ()=> {
   bar.innerHTML = '<span>确认清空全部任务与文本？</span>';
   const yes = document.createElement('button'); yes.className='btn destructive'; yes.textContent='清空';
   const no = document.createElement('button'); no.className='btn'; no.textContent='取消';
-  yes.onclick = ()=> { setTasks([], {updateRawEditor:true, shouldSave:true}); if (dom.raw) dom.raw.value=''; bar.remove(); showToast('已清空'); };
+  yes.onclick = ()=> { setTasks([], {updateRawEditor:true, shouldSave:true}); bar.remove(); showToast('已清空'); };
   no.onclick  = ()=> bar.remove();
   bar.append(yes, no);
   host.append(bar);
@@ -2167,8 +2182,8 @@ dom.resetBtn.addEventListener('click', ()=> {
 const modal = dom.editorModal;
 const dragHandle = dom.modalDragHandle;
 dom.openEditorBtn.addEventListener('click', ()=> {
-  dom.raw.value = tasks.map(formatLine).join('\n'); // Always load current state when opening
-  dom.editorModal.classList.add('open');
+  dom.editorModal.classList.add('open'); // 先打开弹窗
+  syncRawEditorWithValue();              // 再填充内容
 });
 dom.closeEditor.addEventListener('click', ()=> dom.editorModal.classList.remove('open'));
 (function makeDraggable(){
