@@ -168,6 +168,11 @@ main{max-width:1080px; margin:12px auto 80px; padding:0 16px; display:flex; flex
   margin-bottom: 4px; /* 增加任务间距 */
 }
 .task.done{opacity:.5; filter: grayscale(0.3);}
+/* New style for paused tasks */
+.task.paused {
+  opacity: 0.7;
+  border-left: 4px solid var(--warn); /* Visual indicator for paused */
+}
 .title{font-weight:600; cursor:text; word-break:break-word; line-height:1.4;}
 .meta{font-size:12px; color:var(--muted); display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; line-height:1.3;}
 .actions{
@@ -569,6 +574,7 @@ textarea{width:100%; flex:1; border:1px solid var(--border); border-radius:8px; 
             <option value="ongoing">正在进行</option>
             <option value="pending">未开始</option>
             <option value="expired">已过期</option>
+            <option value="paused">已暂停</option> <!-- New: Paused status option -->
             <option value="done">已完成</option>
           </select>
         </div>
@@ -1000,27 +1006,44 @@ function showToast(msg, ms=1400){
 
 /* ========= 解析 / 格式化 ========= */
 function parseLine(line) {
-  const o = { raw:line, done:false, priority:null, completedDate:null, createdDate:null, text:'', projects:[], contexts:[], kv:{} };
-  let s = (line||'').trim(); if (!s) return null;
+  const o = { raw: line, done: false, paused: false, priority: null, completedDate: null, createdDate: null, text: '', projects: [], contexts: [], kv: {} };
+  let s = (line || '').trim();
+  if (!s) return null;
 
   if (s.startsWith('x ')) {
-    o.done = true; s = s.slice(2).trim();
-    const m = s.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{4}-\d{2}-\d{2}))?\s+(.*)$/);
-    if (m) { o.completedDate=m[1]; if (m[2]) o.createdDate=m[2]; s=m[3]; }
-  } else {
-    const mp = s.match(/^\(([A-Z])\)\s+(.*)$/);
-    if (mp) { o.priority = mp[1]; s = mp[2]; }
-    const mc = s.match(/^(\d{4}-\d{2}-\d{2})\s+(.*)$/);
-    if (mc) { o.createdDate = mc[1]; s = mc[2]; }
+    o.done = true;
+    s = s.slice(2).trim();
+    const m = s.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{4}-\d{2}-\d{2}))?\s*(.*)$/);
+    if (m) {
+      o.completedDate = m[1];
+      if (m[2] && /^\d{4}-\d{2}-\d{2}$/.test(m[2])) {
+          o.createdDate = m[2];
+          s = m[3].trim();
+      } else {
+          s = (m[2] ? m[2] + ' ' : '') + m[3].trim();
+      }
+    }
+  } else if (s.startsWith('# ')) { // New: Check for paused
+    o.paused = true;
+    s = s.slice(2).trim();
   }
 
-  const tokens = s.split(/\s+/);
+  // Parse priority and creation date ONLY if not done and not paused
+  if (!o.done && !o.paused) {
+      const mp = s.match(/^\(([A-Z]))\s+(.*)$/);
+      if (mp) { o.priority = mp[1]; s = mp[2].trim(); }
+
+      const mc = s.match(/^(\d{4}-\d{2}-\d{2})\s+(.*)$/);
+      if (mc) { o.createdDate = mc[1]; s = mc[2].trim(); }
+  }
+
+  const tokens = s.split(/\s+/).filter(Boolean);
   const rest = [];
   for (const t of tokens) {
-    if (t.startsWith('+') && t.length>1) o.projects.push(t);
-    else if (t.startsWith('@') && t.length>1) o.contexts.push(t);
+    if (t.startsWith('+') && t.length > 1) o.projects.push(t);
+    else if (t.startsWith('@') && t.length > 1) o.contexts.push(t);
     else if (/^[A-Za-z_][\w-]*:/.test(t)) {
-      const idx = t.indexOf(':'), k = t.slice(0,idx).toLowerCase(), v = t.slice(idx+1);
+      const idx = t.indexOf(':'), k = t.slice(0, idx).toLowerCase(), v = t.slice(idx + 1);
       o.kv[k] = v;
     } else rest.push(t);
   }
@@ -1034,6 +1057,8 @@ function formatLine(o) {
     parts.push('x');
     if (o.completedDate) parts.push(o.completedDate);
     if (o.createdDate) parts.push(o.createdDate);
+  } else if (o.paused) { // Paused is mutually exclusive with done in prefix
+    parts.push('#');
   } else {
     if (o.priority) parts.push(`(${o.priority})`);
     if (o.createdDate) parts.push(o.createdDate);
@@ -1050,11 +1075,16 @@ function formatLine(o) {
 
 /* ========= 重复逻辑 ========= */
 function completeAndMaybeRecur(task) {
+  if (task.paused) return null; // New: Paused tasks do not recur
+
   const todayDate = fmtDate(new Date(), false);
   const nowFull = fmtDate(new Date(), true, true);
+  
+  // The task being completed
   task.done = true;
   task.completedDate = todayDate;
   task.kv['doneat'] = nowFull;
+  // task.paused should already be false if it's being completed via checkbox.
 
   const rec = task.kv['rec'];
   if (!rec) return null;
@@ -1088,6 +1118,7 @@ function completeAndMaybeRecur(task) {
   }
 
   next.done = false;
+  next.paused = false; // New recurring task is not paused
   next.completedDate = null;
   delete next.kv['doneat'];
   next.createdDate = todayDate;
@@ -1113,6 +1144,9 @@ function sortTasks(arr, spec="priority,due,start,text") {
   const keys = spec.split(',').map(s=>s.trim()).filter(Boolean);
   return arr.slice().sort((a,b)=>{
     if (a.done !== b.done) return a.done ? 1 : -1;
+    // New: Paused tasks should also sort appropriately, maybe after active but before done
+    if (a.paused !== b.paused) return a.paused ? 1 : -1; // Paused comes after non-paused
+
     for (const k of keys) {
       if (k === 'priority') {
         const pa = a.priority? a.priority.charCodeAt(0): 999;
@@ -1131,7 +1165,7 @@ function sortTasks(arr, spec="priority,due,start,text") {
       } else if (k === 'countdown') {
         const now = new Date();
         const getUrgency = (t) => {
-          if (t.done) return 999999;
+          if (t.done || t.paused) return 999999; // New: Paused tasks are not urgent
           const due = parseDateMaybe(t.kv['due']);
           const end = parseDateMaybe(t.kv['end']);
           const start = parseDateMaybe(t.kv['start']);
@@ -1187,6 +1221,8 @@ function groupTasks(tasks, groupBy) {
       case 'status':
         if (task.done) {
           groupKey = '已完成';
+        } else if (task.paused) { // New: Group by paused status
+          groupKey = '已暂停';
         } else {
           const now = new Date();
           const today = new Date(now.toDateString());
@@ -1196,7 +1232,7 @@ function groupTasks(tasks, groupBy) {
           if ((due && due < today) || (end && end < now)) {
             groupKey = '已过期';
           } else {
-            groupKey = '待处理'; // Renamed for clarity: Was '有截止时间' or '无截止时间'
+            groupKey = '待处理';
           }
         }
         break;
@@ -1219,7 +1255,8 @@ function groupTasks(tasks, groupBy) {
       };
       return getPriorityOrder(a.name) - getPriorityOrder(b.name);
     } else if (groupBy === 'status') {
-      const statusOrder = { '已过期': 0, '待处理': 1, '已完成': 2, '未分类': 3 }; // Updated order
+      // New: Add '已暂停' to status order
+      const statusOrder = { '已过期': 0, '待处理': 1, '已暂停': 2, '已完成': 3, '未分类': 4 };
       return (statusOrder[a.name] || 999) - (statusOrder[b.name] || 999);
     }
     return a.name.localeCompare(b.name);
@@ -1230,7 +1267,7 @@ function groupTasks(tasks, groupBy) {
 
 /* ========= 倒计时 ========= */
 function describeTaskTime(t, now=new Date()){
-  if (t.done) return '';
+  if (t.done || t.paused) return ''; // New: Paused tasks don't have active time descriptions
   const start = parseDateMaybe(t.kv['start']);
   const end = parseDateMaybe(t.kv['end']);
   const due = parseDateMaybe(t.kv['due']);
@@ -1276,7 +1313,11 @@ function inlineEditTask(t, row) {
   input.className='input'; input.value = current; input.style.width='100%';
   const apply = ()=> {
     const p = parseLine(input.value);
-    if (!p) return;
+    if (!p) {
+        showToast('任务格式不正确！');
+        render(); // Revert to original display if parsing fails
+        return;
+    }
     const idx = tasks.indexOf(t);
     const arr = tasks.slice(); arr[idx]=p; setTasks(arr); // Use setTasks
     showToast('已更新任务');
@@ -1304,7 +1345,7 @@ function render() {
   const now = new Date();
   const today = new Date(now.toDateString());
   const hasExpired = tasks.some(t => {
-    if (t.done) return false;
+    if (t.done || t.paused) return false; // New: Paused tasks are not cleaned up as expired
     const due = parseDateMaybe(t.kv['due']);
     const end = parseDateMaybe(t.kv['end']);
     return (due && due < today) || (end && end < now);
@@ -1392,13 +1433,17 @@ function filterTasks(tasksToFilter, searchVal, status) {
   const now = new Date();
   const today = new Date(now.toDateString());
 
-  if (status === 'open') {
-    filtered = filtered.filter(t => !t.done);
+  if (status === 'all') {
+    // No additional filter, include all tasks (done, open, paused)
+  } else if (status === 'open') {
+    filtered = filtered.filter(t => !t.done && !t.paused); // Exclude paused
   } else if (status === 'done') {
     filtered = filtered.filter(t => t.done);
+  } else if (status === 'paused') { // New: Paused status filter
+    filtered = filtered.filter(t => t.paused && !t.done);
   } else if (status === 'ongoing') {
     filtered = filtered.filter(t => {
-      if (t.done) return false;
+      if (t.done || t.paused) return false; // Exclude done and paused
       const start = parseDateMaybe(t.kv['start']);
       const end = parseDateMaybe(t.kv['end']);
       const due = parseDateMaybe(t.kv['due']);
@@ -1412,20 +1457,20 @@ function filterTasks(tasksToFilter, searchVal, status) {
     });
   } else if (status === 'pending') {
     filtered = filtered.filter(t => {
-      if (t.done) return false;
+      if (t.done || t.paused) return false; // Exclude done and paused
       const start = parseDateMaybe(t.kv['start']);
       return start && now < start;
     });
   } else if (status === 'expired') {
     filtered = filtered.filter(t => {
-      if (t.done) return false;
+      if (t.done || t.paused) return false; // Exclude done and paused
       const due = parseDateMaybe(t.kv['due']);
       const end = parseDateMaybe(t.kv['end']);
       return (due && due < today) || (end && end < now);
     });
   } else if (status === 'actionable') {
     filtered = filtered.filter(t => {
-      if (t.done) return false;
+      if (t.done || t.paused) return false; // Exclude done and paused
       let isOngoing = false;
       const start = parseDateMaybe(t.kv['start']);
       const end = parseDateMaybe(t.kv['end']);
@@ -1573,20 +1618,36 @@ async function pushToGist() {
 function renderTasks(tasksToRender, container) {
   for (const t of tasksToRender) {
     const row = document.createElement('div');
-    row.className = 'task'+(t.done?' done':'');
+    row.className = 'task'+(t.done?' done':'') + (t.paused ? ' paused' : ''); // New: Add 'paused' class
     const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=t.done;
     cb.addEventListener('change', () => {
-      if (!t.done) {
-        const next = completeAndMaybeRecur(t);
-        t.done = true; t.raw = formatLine(t);
-        const arr = tasks.slice();
-        if (next) arr.splice(tasks.indexOf(t)+1, 0, next);
-        setTasks(arr);
-        showToast('已完成');
-      } else {
-        t.done = false; t.completedDate = null; delete t.kv['doneat']; t.raw = formatLine(t);
-        setTasks(tasks);
-        showToast('已恢复为未完成');
+      const currentTaskIndex = tasks.indexOf(t);
+      const originalTask = tasks[currentTaskIndex];
+
+      if (cb.checked) { // User is checking the checkbox (marking as done)
+          originalTask.done = true;
+          originalTask.paused = false; // A done task cannot be paused
+          originalTask.completedDate = fmtDate(new Date(), false);
+          originalTask.kv['doneat'] = fmtDate(new Date(), true, true);
+
+          const nextRecurringTask = completeAndMaybeRecur(originalTask); // This will only run if not paused initially (which it isn't now)
+          
+          const updatedTasks = tasks.slice();
+          if (nextRecurringTask) {
+              updatedTasks.splice(currentTaskIndex + 1, 0, nextRecurringTask); // Insert next recurring task after the current one
+          }
+          updatedTasks[currentTaskIndex] = parseLine(formatLine(originalTask)); // Re-parse to ensure consistency and raw update
+          setTasks(updatedTasks);
+          showToast('已完成');
+      } else { // User is unchecking the checkbox (marking as not done)
+          originalTask.done = false;
+          originalTask.completedDate = null;
+          delete originalTask.kv['doneat'];
+          // Paused state remains as it was before being marked done, or if it was explicitly paused.
+          // For simplicity, let's not auto-unpause here.
+          originalTask.raw = formatLine(originalTask); // Update raw based on current state
+          setTasks(tasks); // tasks array is updated by reference
+          showToast('已恢复为未完成');
       }
     });
 
@@ -1658,7 +1719,13 @@ function renderTasks(tasksToRender, container) {
       timeBadge.textContent = doneat ? `完成于 ${doneat.replace('T', ' ')}` : '已完成';
       meta.append(timeBadge);
       t._descEl = timeBadge;
-    } else if (hasTiming) {
+    } else if (t.paused) { // New: Show "已暂停" for paused tasks
+      const pausedBadge = document.createElement('span'); pausedBadge.className='badge time';
+      pausedBadge.textContent = '已暂停';
+      meta.append(pausedBadge);
+      t._descEl = pausedBadge;
+    }
+    else if (hasTiming) {
       const timeBadge = document.createElement('span'); timeBadge.className='badge time';
       const timeDesc = describeTaskTime(t);
       timeBadge.textContent = timeDesc;
@@ -2011,7 +2078,7 @@ function performExpiredCleanup() {
   const now = new Date();
   const today = new Date(now.toDateString());
   const expiredTasks = tasks.filter(t => {
-    if (t.done) return false;
+    if (t.done || t.paused) return false; // New: Exclude paused tasks from expired cleanup
     const due = parseDateMaybe(t.kv['due']);
     const end = parseDateMaybe(t.kv['end']);
     return (due && due < today) || (end && end < now);
@@ -2029,6 +2096,7 @@ function performExpiredCleanup() {
   let generatedCount = 0;
 
   for (const expiredTask of expiredRecurring) {
+    // Note: completeAndMaybeRecur already checks for task.paused, so no need to filter again for 'paused' here.
     let nextCandidate = completeAndMaybeRecur(JSON.parse(JSON.stringify(expiredTask)));
     let iterationCount = 0;
     const MAX_ITERATIONS = 365 * 5;
@@ -2041,7 +2109,7 @@ function performExpiredCleanup() {
       iterationCount++;
     }
     if (nextCandidate) {
-      const idx = newTasks.indexOf(expiredTask);
+      const idx = newTasks.findIndex(t => t === expiredTask); // Find the task to replace
       if (idx !== -1) newTasks[idx] = nextCandidate; // Replace old with new
       generatedCount++;
     } else {
@@ -2065,7 +2133,7 @@ dom.quickCleanupBtn.addEventListener('click', () => {
   const now = new Date();
   const today = new Date(now.toDateString());
   const expiredTasks = tasks.filter(t => {
-    if (t.done) return false;
+    if (t.done || t.paused) return false; // New: Exclude paused tasks from quick cleanup
     const due = parseDateMaybe(t.kv['due']);
     const end = parseDateMaybe(t.kv['end']);
     return (due && due < today) || (end && end < now);
@@ -2126,7 +2194,7 @@ dom.clearExpiredBtn.addEventListener('click', ()=> {
   const now = new Date();
   const today = new Date(now.toDateString());
   const expiredTasks = tasks.filter(t => {
-    if (t.done) return false;
+    if (t.done || t.paused) return false; // New: Exclude paused tasks from settings expired cleanup
     const due = parseDateMaybe(t.kv['due']);
     const end = parseDateMaybe(t.kv['end']);
     return (due && due < today) || (end && end < now);
@@ -2214,13 +2282,9 @@ setInterval(()=> {
   const now = new Date();
   for (const t of tasks) {
     if (!t) continue;
-    if (t._descEl) {
-      if (t.done) {
-        const doneat = t.kv['doneat'] || (t.completedDate? fmtDate(parseDateMaybe(t.completedDate), true, true) : '');
-        t._descEl.textContent = doneat ? `完成于 ${doneat.replace('T', ' ')}` : '已完成';
-      } else {
+    // New: Only update time descriptions for non-done and non-paused tasks
+    if (t._descEl && !t.done && !t.paused) {
         t._descEl.textContent = describeTaskTime(t, now);
-      }
     }
   }
 }, 1000);
@@ -2246,6 +2310,7 @@ if (tasks.length===0) {
   const seed = [
     '(A) 2025-09-20 Backup system +Ops @server rec:1d start:2025-09-20T05:00 end:2025-09-20T05:30 count:3',
     'Write report +Work @computer due:2025-09-30',
+    '# Consider new features for the app +Productivity @ideas', // New paused task
     'Buy milk @errands'
   ].join('\n');
   applyRawText(seed); // This calls setTasks, which saves and renders.
