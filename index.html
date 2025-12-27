@@ -1030,7 +1030,7 @@ function parseLine(line) {
 
   // Parse priority and creation date ONLY if not done and not paused
   if (!o.done && !o.paused) {
-      const mp = s.match(/^\(([A-Z]))\s+(.*)$/);
+      const mp = s.match(/^\(([A-Z])\)\s+(.*)$/); // FIX: Corrected regular expression
       if (mp) { o.priority = mp[1]; s = mp[2].trim(); }
 
       const mc = s.match(/^(\d{4}-\d{2}-\d{2})\s+(.*)$/);
